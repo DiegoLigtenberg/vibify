@@ -1,0 +1,233 @@
+# VIBIFY - Project Structure Outline
+
+## 🏗️ MONOREPO ARCHITECTURE
+
+```
+vibify/
+├── 📁 src/
+│   ├── 📁 backend/                    # Python FastAPI Backend
+│   │   ├── 📁 app/
+│   │   │   ├── 📁 api/               # API endpoints
+│   │   │   │   ├── 📄 songs.py       # Song discovery, search, random
+│   │   │   │   ├── 📄 playlists.py   # Playlist CRUD operations
+│   │   │   │   ├── 📄 albums.py      # Album pages, add to playlist
+│   │   │   │   ├── 📄 upload.py      # Music upload endpoints
+│   │   │   │   ├── 📄 tags.py        # Genre filtering
+│   │   │   │   └── 📄 auth.py        # Authentication
+│   │   │   ├── 📁 services/          # Business logic layer
+│   │   │   │   ├── 📄 song_service.py
+│   │   │   │   ├── 📄 playlist_service.py
+│   │   │   │   ├── 📄 upload_service.py
+│   │   │   │   ├── 📄 album_service.py
+│   │   │   │   └── 📄 auth_service.py
+│   │   │   ├── 📁 models/            # Database models
+│   │   │   │   ├── 📄 song.py
+│   │   │   │   ├── 📄 playlist.py
+│   │   │   │   ├── 📄 upload.py
+│   │   │   │   └── 📄 user.py
+│   │   │   ├── 📁 database/          # Database connection & config
+│   │   │   │   ├── 📄 connection.py
+│   │   │   │   ├── 📁 migrations/
+│   │   │   │   └── 📄 seed_data.py
+│   │   │   ├── 📁 utils/             # Utilities
+│   │   │   │   ├── 📄 b2_client.py   # Backblaze B2 integration
+│   │   │   │   ├── 📄 validators.py  # File validation
+│   │   │   │   └── 📄 helpers.py
+│   │   │   ├── 📁 config/            # Configuration
+│   │   │   │   ├── 📄 settings.py
+│   │   │   │   └── 📄 env.py
+│   │   │   └── 📄 main.py            # FastAPI app setup
+│   │   ├── 📄 requirements.txt
+│   │   ├── 📄 Dockerfile
+│   │   └── 📄 .env.example
+│   │
+│   ├── 📁 frontend/                   # Next.js 14 Frontend
+│   │   ├── 📁 src/
+│   │   │   ├── 📁 app/               # Next.js App Router
+│   │   │   │   ├── 📄 layout.tsx     # Root layout
+│   │   │   │   ├── 📄 page.tsx       # Home page
+│   │   │   │   ├── 📁 (dashboard)/   # Dashboard routes
+│   │   │   │   │   ├── 📄 page.tsx   # Main dashboard
+│   │   │   │   │   ├── 📁 search/    # Search page
+│   │   │   │   │   │   └── 📄 page.tsx
+│   │   │   │   │   ├── 📁 album/     # Album pages
+│   │   │   │   │   │   └── 📁 [id]/
+│   │   │   │   │   │       └── 📄 page.tsx
+│   │   │   │   │   ├── 📁 playlist/  # Playlist pages
+│   │   │   │   │   │   └── 📁 [id]/
+│   │   │   │   │   │       └── 📄 page.tsx
+│   │   │   │   │   └── 📁 upload/    # Upload page
+│   │   │   │   │       └── 📄 page.tsx
+│   │   │   │   └── 📁 api/           # API routes (if needed)
+│   │   │   ├── 📁 components/        # React components
+│   │   │   │   ├── 📁 ui/            # shadcn/ui components
+│   │   │   │   ├── 📁 song/          # Song-related components
+│   │   │   │   │   ├── 📄 song-card.tsx
+│   │   │   │   │   ├── 📄 song-player.tsx
+│   │   │   │   │   ├── 📄 random-feed.tsx
+│   │   │   │   │   ├── 📄 song-search.tsx
+│   │   │   │   │   └── 📄 genre-tabs.tsx
+│   │   │   │   ├── 📁 playlist/      # Playlist components
+│   │   │   │   │   ├── 📄 playlist-card.tsx
+│   │   │   │   │   ├── 📄 playlist-manager.tsx
+│   │   │   │   │   └── 📄 add-to-playlist.tsx
+│   │   │   │   ├── 📁 album/         # Album components
+│   │   │   │   │   ├── 📄 album-page.tsx
+│   │   │   │   │   ├── 📄 album-card.tsx
+│   │   │   │   │   └── 📄 add-album-to-playlist.tsx
+│   │   │   │   ├── 📁 upload/        # Upload components
+│   │   │   │   │   ├── 📄 music-upload.tsx
+│   │   │   │   │   ├── 📄 upload-progress.tsx
+│   │   │   │   │   └── 📄 file-validator.tsx
+│   │   │   │   ├── 📁 layout/        # Layout components
+│   │   │   │   │   ├── 📄 header.tsx
+│   │   │   │   │   ├── 📄 sidebar.tsx
+│   │   │   │   │   └── 📄 player-bar.tsx
+│   │   │   │   └── 📁 common/        # Shared components
+│   │   │   │       ├── 📄 loading.tsx
+│   │   │   │       ├── 📄 error.tsx
+│   │   │   │       └── 📄 pagination.tsx
+│   │   │   ├── 📁 lib/               # Utilities & config
+│   │   │   │   ├── 📄 api.ts         # API client
+│   │   │   │   ├── 📄 auth.ts        # Auth utilities
+│   │   │   │   ├── 📄 utils.ts       # Helper functions
+│   │   │   │   └── 📄 constants.ts   # App constants
+│   │   │   ├── 📁 store/             # State management
+│   │   │   │   ├── 📄 song-store.ts  # Song state
+│   │   │   │   ├── 📄 playlist-store.ts
+│   │   │   │   ├── 📄 player-store.ts
+│   │   │   │   └── 📄 auth-store.ts
+│   │   │   ├── 📁 hooks/             # Custom React hooks
+│   │   │   │   ├── 📄 use-songs.ts
+│   │   │   │   ├── 📄 use-playlists.ts
+│   │   │   │   ├── 📄 use-player.ts
+│   │   │   │   └── 📄 use-upload.ts
+│   │   │   └── 📁 types/             # TypeScript types
+│   │   │       ├── 📄 song.ts
+│   │   │       ├── 📄 playlist.ts
+│   │   │       ├── 📄 upload.ts
+│   │   │       └── 📄 api.ts
+│   │   ├── 📄 package.json
+│   │   ├── 📄 next.config.js
+│   │   ├── 📄 tailwind.config.js
+│   │   ├── 📄 tsconfig.json
+│   │   └── 📄 .env.local.example
+│   │
+│   └── 📁 shared/                     # Shared code between frontend/backend
+│       ├── 📁 types/                 # Shared TypeScript types
+│       │   ├── 📄 song.ts
+│       │   ├── 📄 playlist.ts
+│       │   ├── 📄 upload.ts
+│       │   └── 📄 api.ts
+│       ├── 📁 constants/             # Shared constants
+│       │   ├── 📄 api-endpoints.ts
+│       │   └── 📄 validation-rules.ts
+│       └── 📁 utils/                 # Shared utilities
+│           ├── 📄 formatters.ts
+│           └── 📄 validators.ts
+│
+├── 📁 docs/                          # Documentation
+│   ├── 📄 api.md
+│   ├── 📄 database-schema.md
+│   └── 📄 deployment.md
+│
+├── 📁 scripts/                       # Development scripts
+│   ├── 📄 setup.sh
+│   ├── 📄 dev.sh
+│   ├── 📄 build.sh
+│   └── 📄 deploy.sh
+│
+├── 📄 .gitignore
+├── 📄 README.md
+├── 📄 features.txt                   # Feature documentation
+├── 📄 project-structure.txt          # This file
+├── 📄 docker-compose.yml             # Local development
+├── 📄 Procfile                       # Heroku deployment
+└── 📄 package.json                   # Root package.json for scripts
+```
+
+## 🎯 KEY ARCHITECTURE DECISIONS
+
+### **1. Monorepo Structure:**
+- **`src/backend/`** - Python FastAPI (separate server)
+- **`src/frontend/`** - Next.js 14 (separate server)
+- **`src/shared/`** - Common types & utilities
+
+### **2. Feature-Based Organization:**
+- **Song components** → `components/song/`
+- **Playlist components** → `components/playlist/`
+- **Album components** → `components/album/`
+- **Upload components** → `components/upload/`
+
+### **3. Clear Separation:**
+- **API layer** → `backend/app/api/`
+- **Business logic** → `backend/app/services/`
+- **Data models** → `backend/app/models/`
+- **UI components** → `frontend/src/components/`
+
+### **4. AI-Friendly Structure:**
+- **Clear file names** (song-card.tsx, playlist-manager.tsx)
+- **Logical grouping** (all song features in one folder)
+- **Consistent patterns** (service → component → hook)
+
+## 🚀 DEVELOPMENT WORKFLOW
+
+### **Local Development:**
+```bash
+# Backend (Python)
+cd src/backend
+python -m uvicorn app.main:app --reload
+
+# Frontend (Next.js)
+cd src/frontend
+npm run dev
+```
+
+### **Production:**
+- **Backend** → Heroku (Python + Gunicorn)
+- **Frontend** → Vercel/Netlify (Next.js)
+- **Database** → Supabase (PostgreSQL)
+- **Storage** → Backblaze B2 (Audio files)
+
+## 📊 FEATURE MAPPING
+
+### **Song Features:**
+- **Discovery** → `components/song/random-feed.tsx`
+- **Search** → `components/song/song-search.tsx`
+- **Player** → `components/song/song-player.tsx`
+- **API** → `backend/app/api/songs.py`
+
+### **Playlist Features:**
+- **Management** → `components/playlist/playlist-manager.tsx`
+- **Add Songs** → `components/playlist/add-to-playlist.tsx`
+- **API** → `backend/app/api/playlists.py`
+
+### **Album Features:**
+- **Pages** → `components/album/album-page.tsx`
+- **Add to Playlist** → `components/album/add-album-to-playlist.tsx`
+- **API** → `backend/app/api/albums.py`
+
+### **Upload Features:**
+- **Upload Form** → `components/upload/music-upload.tsx`
+- **Progress** → `components/upload/upload-progress.tsx`
+- **API** → `backend/app/api/upload.py`
+
+## 🔧 TECHNICAL STACK
+
+### **Backend:**
+- **Python** + **FastAPI** for API
+- **Supabase** for database & auth
+- **B2 Backblaze** for audio storage
+- **Gunicorn** for production server
+
+### **Frontend:**
+- **Next.js 14** + **TypeScript** + **React**
+- **Tailwind CSS** + **shadcn/ui** for styling
+- **Zustand** for state management
+- **Howler.js** for audio playback
+
+### **Database:**
+- **PostgreSQL** (via Supabase)
+- **Row Level Security** for user data
+- **Full-text search** with GIN indexes
+- **Optimized queries** for 10k+ songs
