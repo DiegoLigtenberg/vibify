@@ -1,0 +1,41 @@
+{
+    "name": "vibify-frontend",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "type-check": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@radix-ui/react-dialog": "^1.1.15",
+        "@radix-ui/react-dropdown-menu": "^2.1.16",
+        "@radix-ui/react-slot": "^1.2.3",
+        "@radix-ui/react-toast": "^1.2.15",
+        "@tailwindcss/forms": "^0.5.10",
+        "@tailwindcss/typography": "^0.5.18",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "dotenv": "^17.2.2",
+        "howler": "^2.2.4",
+        "lucide-react": "^0.294.0",
+        "next": "^14.2.33",
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "tailwind-merge": "^3.3.1",
+        "tailwindcss-animate": "^1.0.7",
+        "zustand": "^4.4.7"
+    },
+    "devDependencies": {
+        "@types/howler": "^2.2.12",
+        "@types/node": "20.10.5",
+        "@types/react": "18.2.45",
+        "@types/react-dom": "18.2.18",
+        "autoprefixer": "^10.4.21",
+        "eslint": "^9.36.0",
+        "postcss": "^8.4.31",
+        "tailwindcss": "^3.4.17",
+        "typescript": "5.3.3"
+    }
+}

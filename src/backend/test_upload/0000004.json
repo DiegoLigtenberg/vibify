@@ -1,0 +1,27 @@
+{
+  "id": "0000004",
+  "title": "Everything and Nothing",
+  "artist": "Acid Wave",
+  "album": "heart2heart",
+  "duration": 219,
+  "release_date": "20230707",
+  "view_count": 6004,
+  "like_count": 203,
+  "description": "Everything and Nothing is a track from Acid Wave's album 'heart2heart'. Featuring a blend of ambient and shoegaze influences, the song explores themes of existential reflection. Produced by Ross Ingram and the band, it highlights Acid Wave's signature dreamy soundscape.",
+  "tags": [
+    "Shoegaze",
+    "Dream Pop",
+    "Indie",
+    "Ambient"
+  ],
+  "thumbnail_url": "thumbnails/0000004.png",
+  "audio_url": "audio/0000004.mp3",
+  "created_at": "2025-03-16T23:52:59.991243",
+  "local_paths": {
+    "audio": "G:/GitHub/audio-foundation/database/dataset_mp3/audio/0000004.mp3",
+    "thumbnail": "G:/GitHub/audio-foundation/database/dataset_mp3/thumbnails/0000004.png",
+    "metadata": "G:/GitHub/audio-foundation/database/dataset_mp3_metadata/0000004.json"
+  },
+  "source_id": "yGVUmgKaYAE",
+  "source_url": "https://www.youtube.com/watch?v=yGVUmgKaYAE"
+}

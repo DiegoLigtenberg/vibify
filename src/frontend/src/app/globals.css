@@ -1,0 +1,322 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 142 76% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Spotify-inspired custom styles */
+@layer components {
+  .vibify-gradient {
+    /* Dark Spotify theme: sharp gradient with darker bottom */
+    background-image: linear-gradient(
+      to bottom,
+      #3a3a3a 0%,   /* top - lighter dark grey */
+      #2a2a2a 20%,  /* mid - lighter grey */
+      #0a0a0a 100%  /* bottom - much darker */
+    );
+  }
+
+  /* Player bar background: exact match with the bottom gradient stop */
+  .playerbar-bg {
+    background-color: #0a0a0a; /* Darker to match bottom */
+  }
+
+  /* Unified bottom bar background: matches darkest gradient color */
+  .unified-bottom-bar {
+    background-color: #0a0a0a; /* Matches bottom of vibify-gradient */
+    border-top: 1px solid #1a1a1a; /* Very subtle border, slightly lighter than background */
+  }
+
+  /* Force dark theme on all elements */
+  .dark-theme {
+    background-color: #121212 !important;
+    color: #ffffff !important;
+  }
+
+  /* Unified Bottom Bar Slider Styling */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-track {
+    background: #4b5563;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    background: #1db954;
+    transform: scale(1.1);
+  }
+
+  .slider::-moz-range-track {
+    background: #4b5563;
+    height: 4px;
+    border-radius: 2px;
+    border: none;
+  }
+
+  .slider::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider::-moz-range-thumb:hover {
+    background: #1db954;
+    transform: scale(1.1);
+  }
+
+  /* Spotify-themed Scrollbar */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #535353;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #727272;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: #1db954;
+    background-clip: content-box;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #535353 transparent;
+  }
+  .spotify-bg {
+    @apply bg-gradient-to-b from-spotify-gray to-spotify-dark;
+  }
+  
+  .spotify-card {
+    @apply bg-spotify-lightgray hover:bg-gray-600 transition-colors duration-200 rounded-lg p-4;
+  }
+  
+  .spotify-button {
+    @apply bg-spotify-green hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-full transition-colors duration-200;
+  }
+  
+  .spotify-button-secondary {
+    @apply bg-transparent border border-white/20 hover:border-white text-white font-semibold py-2 px-4 rounded-full transition-colors duration-200;
+  }
+  
+  .spotify-text {
+    @apply text-spotify-text;
+  }
+  
+  .spotify-text-muted {
+    @apply text-spotify-muted;
+  }
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .song-card {
+    @apply spotify-card cursor-pointer hover:bg-gray-600/50 transition-all duration-200;
+  }
+  
+  .song-card:hover {
+    @apply transform scale-105;
+  }
+  
+  .play-button {
+    @apply absolute bottom-4 right-4 bg-spotify-green rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg;
+  }
+  
+  /* Sidebar System */
+  .sidebar-section {
+    @apply px-4 py-3 sm:px-6 sm:py-4;
+  }
+  
+  .sidebar-section.sidebar-divider {
+    @apply border-t border-spotify-lightgray;
+  }
+  
+  .sidebar-header {
+    @apply flex items-center justify-between mb-3 sm:mb-4;
+  }
+  
+  .sidebar-title {
+    @apply text-spotify-muted text-xs sm:text-sm font-semibold uppercase tracking-wider;
+  }
+  
+  .sidebar-action {
+    @apply text-spotify-muted hover:text-white transition-colors;
+  }
+  
+  .sidebar-list {
+    @apply space-y-1 sm:space-y-2;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center space-x-2 sm:space-x-3 text-spotify-muted hover:text-spotify-text transition-colors duration-200 py-1.5 sm:py-2 px-2 sm:px-3 rounded-md text-sm;
+  }
+  
+  .sidebar-item.active {
+    @apply text-spotify-text bg-spotify-lightgray;
+  }
+  
+  .sidebar-user {
+    @apply flex items-center space-x-2 sm:space-x-3;
+  }
+  
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    .sidebar-section {
+      @apply px-3 py-2;
+    }
+    
+    .sidebar-item {
+      @apply text-xs py-1 px-2;
+    }
+    
+    .sidebar-title {
+      @apply text-xs;
+    }
+
+    /* Better touch targets for mobile */
+    .song-card {
+      @apply min-h-[120px];
+    }
+
+    .play-button {
+      @apply p-2 h-10 w-10;
+    }
+
+    /* Mobile-friendly grid spacing */
+    .unified-grid {
+      @apply gap-2;
+    }
+
+    /* Mobile bottom bar adjustments */
+    .unified-bottom-bar {
+      @apply h-16;
+    }
+
+    /* Better mobile text sizing */
+    .mobile-text-sm {
+      @apply text-xs;
+    }
+
+    .mobile-text-base {
+      @apply text-sm;
+    }
+
+    /* Touch-friendly buttons */
+    .touch-button {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+
+  /* Landscape mobile optimizations */
+  @media (max-width: 768px) and (orientation: landscape) {
+    .unified-bottom-bar {
+      @apply h-14;
+    }
+
+    .song-card {
+      @apply aspect-[4/3];
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 480px) {
+    .song-card {
+      @apply min-h-[100px] p-2;
+    }
+
+    .unified-grid {
+      @apply gap-1;
+    }
+  }
+}

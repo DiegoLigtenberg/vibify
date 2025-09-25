@@ -1,0 +1,26 @@
+{
+  "id": "0000000",
+  "title": "Summer Moon",
+  "artist": "Acid Wave",
+  "album": "heart2heart",
+  "duration": 216,
+  "release_date": "20230707",
+  "view_count": 4695,
+  "like_count": 170,
+  "description": "Summer Moon by Acid Wave is a standout track from their album heart2heart. This song captures the ethereal essence of dream pop with its lush soundscapes and reflective melodies, showcasing the band's unique style and creative artistry. Produced by Ross Ingram and Acid Wave, it's a must-listen for fans of the genre.",
+  "tags": [
+    "Alternative",
+    "Shoegaze",
+    "Pop"
+  ],
+  "thumbnail_url": "thumbnails/0000000.png",
+  "audio_url": "audio/0000000.mp3",
+  "created_at": "2025-03-16T23:52:57.886486",
+  "local_paths": {
+    "audio": "G:/GitHub/audio-foundation/database/dataset_mp3/audio/0000000.mp3",
+    "thumbnail": "G:/GitHub/audio-foundation/database/dataset_mp3/thumbnails/0000000.png",
+    "metadata": "G:/GitHub/audio-foundation/database/dataset_mp3_metadata/0000000.json"
+  },
+  "source_id": "VaFF3AOfEnU",
+  "source_url": "https://www.youtube.com/watch?v=VaFF3AOfEnU"
+}

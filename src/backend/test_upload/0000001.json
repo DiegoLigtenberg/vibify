@@ -1,0 +1,27 @@
+{
+  "id": "0000001",
+  "title": "Reunion (The Long Version)",
+  "artist": "Buddy Dean Revell",
+  "album": "",
+  "duration": 173,
+  "release_date": "20241108",
+  "view_count": 350,
+  "like_count": 4,
+  "description": "Experience the atmospheric journey of 'Reunion', a long version track by Buddy Dean Revell that delves into trance and rave influences. The industrial wave elements bring a darker tone to the composition. Perfect for fans of immersive and expansive electronic music experiences.",
+  "tags": [
+    "Trance",
+    "Acid",
+    "Rave",
+    "Industrial"
+  ],
+  "thumbnail_url": "thumbnails/0000001.png",
+  "audio_url": "audio/0000001.mp3",
+  "created_at": "2025-03-16T23:52:58.032996",
+  "local_paths": {
+    "audio": "G:/GitHub/audio-foundation/database/dataset_mp3/audio/0000001.mp3",
+    "thumbnail": "G:/GitHub/audio-foundation/database/dataset_mp3/thumbnails/0000001.png",
+    "metadata": "G:/GitHub/audio-foundation/database/dataset_mp3_metadata/0000001.json"
+  },
+  "source_id": "VsoA3X8DO2g",
+  "source_url": "https://www.youtube.com/watch?v=VsoA3X8DO2g"
+}

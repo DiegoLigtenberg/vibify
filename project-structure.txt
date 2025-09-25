@@ -1,23 +1,30 @@
 # VIBIFY - Project Structure Outline
 
+## 📝 IMPORTANT NOTE
+**This file is the living documentation of our project structure.**
+- ✅ **Always update this file** when we add/remove/modify folders or files
+- ✅ **Keep it current** with the actual project structure
+- ✅ **Reference this file** when making architectural decisions
+- ✅ **Use as roadmap** for Cursor AI development
+
 ## 🏗️ MONOREPO ARCHITECTURE
 
 ```
 vibify/
 ├── 📁 src/
-│   ├── 📁 backend/                    # Python FastAPI Backend
+│   ├── 📁 backend/                    # Python FastAPI Backend (UV managed)
 │   │   ├── 📁 app/
 │   │   │   ├── 📁 api/               # API endpoints
 │   │   │   │   ├── 📄 songs.py       # Song discovery, search, random
 │   │   │   │   ├── 📄 playlists.py   # Playlist CRUD operations
 │   │   │   │   ├── 📄 albums.py      # Album pages, add to playlist
-│   │   │   │   ├── 📄 upload.py      # Music upload endpoints
+│   │   │   │   ├── 📄 upload.py      # Music upload endpoints ✅ CREATED
 │   │   │   │   ├── 📄 tags.py        # Genre filtering
 │   │   │   │   └── 📄 auth.py        # Authentication
 │   │   │   ├── 📁 services/          # Business logic layer
 │   │   │   │   ├── 📄 song_service.py
 │   │   │   │   ├── 📄 playlist_service.py
-│   │   │   │   ├── 📄 upload_service.py
+│   │   │   │   ├── 📄 upload_service.py ✅ CREATED
 │   │   │   │   ├── 📄 album_service.py
 │   │   │   │   └── 📄 auth_service.py
 │   │   │   ├── 📁 models/            # Database models
@@ -31,13 +38,39 @@ vibify/
 │   │   │   │   └── 📄 seed_data.py
 │   │   │   ├── 📁 utils/             # Utilities
 │   │   │   │   ├── 📄 b2_client.py   # Backblaze B2 integration
-│   │   │   │   ├── 📄 validators.py  # File validation
-│   │   │   │   └── 📄 helpers.py
+│   │   │   │   ├── 📄 validators.py  # File validation ✅ CREATED
+│   │   │   │   └── 📄 helpers.py     # Helper utilities ✅ CREATED
 │   │   │   ├── 📁 config/            # Configuration
-│   │   │   │   ├── 📄 settings.py
-│   │   │   │   └── 📄 env.py
+│   │   │   │   ├── 📄 settings.py    # Pydantic settings ✅ UPDATED
+│   │   │   │   ├── 📄 logging.py     # Centralized logging ✅ CREATED
+│   │   │   │   └── 📄 env.py         # Environment utilities ✅ CREATED
 │   │   │   └── 📄 main.py            # FastAPI app setup
-│   │   ├── 📄 requirements.txt
+│   │   ├── 📁 scripts/               # Upload and utility scripts
+│   │   │   ├── 📄 upload_from_json.py    # JSON to Supabase upload ✅ CREATED
+│   │   │   ├── 📄 upload_complete.py     # Complete upload process ✅ CREATED
+│   │   │   ├── 📄 upload_to_supabase.py  # Legacy upload script ✅ MOVED
+│   │   │   └── 📁 b2_upload/         # B2 upload utilities
+│   │   │       └── 📄 upload_files_to_b2.py  # B2 file upload ✅ CREATED
+│   │   ├── 📁 tests/                 # Test suite
+│   │   │   ├── 📄 __init__.py
+│   │   │   ├── 📄 conftest.py        # Pytest configuration
+│   │   │   ├── 📁 app/               # Tests mirroring app structure
+│   │   │   │   ├── 📁 api/           # API tests
+│   │   │   │   │   ├── 📄 test_songs.py      # Songs API tests ✅ MOVED
+│   │   │   │   │   ├── 📄 test_upload.py     # Upload API tests
+│   │   │   │   │   ├── 📄 test_playlists.py  # Playlists tests
+│   │   │   │   │   └── 📄 test_auth.py       # Authentication tests
+│   │   │   │   ├── 📁 services/      # Service tests
+│   │   │   │   │   ├── 📄 test_song_service.py
+│   │   │   │   │   ├── 📄 test_upload_service.py
+│   │   │   │   │   └── 📄 test_playlist_service.py
+│   │   │   │   └── 📁 utils/         # Utility tests
+│   │   │   │       ├── 📄 test_b2_client.py  # B2 client tests ✅ MOVED
+│   │   │   │       └── 📄 test_validators.py
+│   │   ├── 📄 pyproject.toml         # UV project configuration
+│   │   ├── 📄 uv.lock               # UV lock file
+│   │   ├── 📄 .python-version       # Python version
+│   │   ├── 📄 requirements.txt      # Fallback requirements
 │   │   ├── 📄 Dockerfile
 │   │   └── 📄 .env.example
 │   │
@@ -231,3 +264,17 @@ npm run dev
 - **Row Level Security** for user data
 - **Full-text search** with GIN indexes
 - **Optimized queries** for 10k+ songs
+
+## 🔄 MAINTENANCE WORKFLOW
+
+### **When Making Changes:**
+1. **Make the actual change** (add/remove/modify files)
+2. **Update this file** (`project-structure.txt`) to reflect the change
+3. **Keep it synchronized** with the real project structure
+4. **Use as reference** for future development
+
+### **Why This Matters:**
+- **Cursor AI** uses this file to understand project structure
+- **Team members** can quickly see the current architecture
+- **Documentation** stays current with actual code
+- **Consistency** across all development phases

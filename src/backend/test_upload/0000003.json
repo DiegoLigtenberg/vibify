@@ -1,0 +1,26 @@
+{
+  "id": "0000003",
+  "title": "Somewhere Else",
+  "artist": "Acid Wave",
+  "album": "Love Trauma",
+  "duration": 169,
+  "release_date": "20200914",
+  "view_count": 1996,
+  "like_count": 94,
+  "description": "Explore the evocative soundscapes of 'Somewhere Else' from Acid Wave's debut album, Love Trauma. With its shoegaze-inspired textures, this track offers a compelling journey through emotion and sound.",
+  "tags": [
+    "Shoegaze",
+    "Alternative",
+    "Pop"
+  ],
+  "thumbnail_url": "thumbnails/0000003.png",
+  "audio_url": "audio/0000003.mp3",
+  "created_at": "2025-03-16T23:52:59.668310",
+  "local_paths": {
+    "audio": "G:/GitHub/audio-foundation/database/dataset_mp3/audio/0000003.mp3",
+    "thumbnail": "G:/GitHub/audio-foundation/database/dataset_mp3/thumbnails/0000003.png",
+    "metadata": "G:/GitHub/audio-foundation/database/dataset_mp3_metadata/0000003.json"
+  },
+  "source_id": "dW6DtKXVkBQ",
+  "source_url": "https://www.youtube.com/watch?v=dW6DtKXVkBQ"
+}

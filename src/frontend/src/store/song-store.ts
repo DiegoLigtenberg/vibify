@@ -1,0 +1,456 @@
+import { create } from 'zustand';
+import { SongsAPI } from '../lib/api';
+import type { Song, SongSearchParams, SongSearchResult } from '@/shared/types/song';
+
+interface SongState {
+  // Search state
+  searchQuery: string;
+  searchResults: Song[];
+  searchTotal: number;
+  searchHasMore: boolean;
+  isSearching: boolean;
+  searchError: string | null;
+  
+  // Random songs
+  randomSongs: Song[];
+  isLoadingRandom: boolean;
+  randomError: string | null;
+  
+  // Popular songs
+  popularSongs: Song[];
+  isLoadingPopular: boolean;
+  popularError: string | null;
+  
+  // Recently played
+  recentlyPlayed: Song[];
+  
+  // Liked songs
+  likedSongs: Set<string>;
+  isLiking: boolean;
+  
+  // Discover feed (infinite scroll)
+  discoverItems: Song[];
+  discoverCursor: number;
+  discoverSeed: number;
+  discoverHasMore: boolean;
+  isLoadingDiscover: boolean;
+  discoverError: string | null;
+  
+  // Genre discover feed (infinite scroll with genre filtering)
+  genreDiscoverItems: Song[];
+  genreDiscoverCursor: number;
+  genreDiscoverSeed: number;
+  genreDiscoverHasMore: boolean;
+  isLoadingGenreDiscover: boolean;
+  genreDiscoverError: string | null;
+  selectedGenres: string[];
+  
+  // Current view
+  currentView: 'search' | 'random' | 'recent' | 'liked';
+  
+  // Actions
+  setSearchQuery: (query: string) => void;
+  searchSongs: (params?: SongSearchParams) => Promise<void>;
+  loadMoreSearchResults: () => Promise<void>;
+  clearSearch: () => void;
+  
+  loadRandomSongs: (limit?: number) => Promise<void>;
+  loadPopularSongs: (limit?: number) => Promise<void>;
+  
+         // Discover actions
+         initDiscover: (seed?: number) => Promise<void>;
+         loadNextDiscover: (limit?: number) => Promise<void>;
+         resetDiscover: () => void;
+         
+         // Genre discover actions
+         setSelectedGenres: (genres: string[]) => void;
+         initGenreDiscover: (genres: string[], seed?: number) => Promise<void>;
+         loadNextGenreDiscover: (limit?: number) => Promise<void>;
+         resetGenreDiscover: () => void;
+  
+  addToRecentlyPlayed: (song: Song) => void;
+  clearRecentlyPlayed: () => void;
+  
+  toggleLike: (songId: string) => Promise<void>;
+  loadLikedSongs: () => Promise<void>;
+  
+  setCurrentView: (view: 'search' | 'random' | 'recent' | 'liked') => void;
+  
+  // Utility
+  isLiked: (songId: string) => boolean;
+}
+
+export const useSongStore = create<SongState>((set, get) => ({
+  // Initial state
+  searchQuery: '',
+  searchResults: [],
+  searchTotal: 0,
+  searchHasMore: false,
+  isSearching: false,
+  searchError: null,
+  randomSongs: [],
+  isLoadingRandom: false,
+  randomError: null,
+  popularSongs: [],
+  isLoadingPopular: false,
+  popularError: null,
+  recentlyPlayed: [],
+  likedSongs: new Set(),
+  isLiking: false,
+  currentView: 'random',
+  discoverItems: [],
+  discoverCursor: 0,
+  discoverSeed: 0,
+  discoverHasMore: true,
+  isLoadingDiscover: false,
+  discoverError: null,
+  genreDiscoverItems: [],
+  genreDiscoverCursor: 0,
+  genreDiscoverSeed: 0,
+  genreDiscoverHasMore: true,
+  isLoadingGenreDiscover: false,
+  genreDiscoverError: null,
+  selectedGenres: [],
+
+  // Actions
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query });
+  },
+
+  searchSongs: async (params: SongSearchParams = {}) => {
+    const { searchQuery } = get();
+    const searchParams = { ...params, query: searchQuery };
+    
+    set({ isSearching: true, searchError: null });
+    
+    try {
+      const result = await SongsAPI.search(searchParams);
+      set({
+        searchResults: result.songs,
+        searchTotal: result.total,
+        searchHasMore: result.has_more,
+        isSearching: false
+      });
+    } catch (error) {
+      set({
+        searchError: error instanceof Error ? error.message : 'Search failed',
+        isSearching: false
+      });
+    }
+  },
+
+  loadMoreSearchResults: async () => {
+    const { searchResults, searchHasMore, isSearching } = get();
+    
+    if (!searchHasMore || isSearching) return;
+    
+    set({ isSearching: true });
+    
+    try {
+      const result = await SongsAPI.search({
+        query: get().searchQuery,
+        offset: searchResults.length
+      });
+      
+      set({
+        searchResults: [...searchResults, ...result.songs],
+        searchHasMore: result.has_more,
+        isSearching: false
+      });
+    } catch (error) {
+      set({
+        searchError: error instanceof Error ? error.message : 'Load more failed',
+        isSearching: false
+      });
+    }
+  },
+
+  clearSearch: () => {
+    set({
+      searchQuery: '',
+      searchResults: [],
+      searchTotal: 0,
+      searchHasMore: false,
+      searchError: null
+    });
+  },
+
+  loadRandomSongs: async (limit = 20) => {
+    console.log('🎵 SongStore: Loading random songs, limit:', limit);
+    set({ isLoadingRandom: true, randomError: null });
+    
+    try {
+      const songs = await SongsAPI.getRandom({ limit });
+      // Ensure songs is always an array
+      const songsArray = Array.isArray(songs) ? songs : [];
+      console.log('🎵 SongStore: Loaded songs:', songsArray.length, songsArray);
+      set({
+        randomSongs: songsArray,
+        isLoadingRandom: false
+      });
+    } catch (error) {
+      console.error('🎵 SongStore: Error loading random songs:', error);
+      set({
+        randomError: error instanceof Error ? error.message : 'Load random songs failed',
+        isLoadingRandom: false
+      });
+    }
+  },
+
+  loadPopularSongs: async (limit = 20) => {
+    set({ isLoadingPopular: true, popularError: null });
+    
+    try {
+      const songs = await SongsAPI.getPopular({ limit });
+      // Ensure songs is always an array
+      const songsArray = Array.isArray(songs) ? songs : [];
+      set({
+        popularSongs: songsArray,
+        isLoadingPopular: false
+      });
+    } catch (error) {
+      set({
+        popularError: error instanceof Error ? error.message : 'Load popular songs failed',
+        isLoadingPopular: false
+      });
+    }
+  },
+
+  // Reset discover state
+  resetDiscover: () => {
+    set({
+      discoverItems: [],
+      discoverCursor: 0,
+      discoverSeed: 0,
+      discoverHasMore: true,
+      isLoadingDiscover: false,
+      discoverError: null
+    });
+  },
+
+         // Discover feed: initialize with a seed (optional)
+         initDiscover: async (seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 24) => {
+           const { discoverItems, isLoadingDiscover, discoverSeed, discoverHasMore } = get();
+           
+           // Force reset if hasMore is false (corrupted state)
+           if (!discoverHasMore) {
+             get().resetDiscover();
+           }
+           
+           // Guard: avoid re-initializing if we already have data or are loading
+           if (isLoadingDiscover || (discoverItems && discoverItems.length > 0 && discoverHasMore)) {
+             return;
+           }
+           // Use existing seed if already set to keep pagination deterministic
+           const stableSeed = discoverSeed && discoverSeed > 0 ? discoverSeed : seed;
+           set({ discoverItems: [], discoverCursor: 0, discoverSeed: stableSeed, discoverHasMore: true, discoverError: null });
+           await get().loadNextDiscover(initialBatchSize);
+         },
+
+  // Load the next page for discover
+  loadNextDiscover: async (limit = 24) => {
+    const { isLoadingDiscover, discoverHasMore, discoverCursor, discoverSeed, discoverItems } = get();
+    
+    if (isLoadingDiscover || !discoverHasMore) {
+      return;
+    }
+    
+    set({ isLoadingDiscover: true, discoverError: null });
+    try {
+      const { songs, next_cursor, has_more } = await SongsAPI.getDiscover({ limit, cursor: discoverCursor, seed: discoverSeed });
+      
+      const added = Array.isArray(songs) ? songs : [];
+      
+      // Dynamic memory management based on screen size
+      const calculateMaxSongs = () => {
+        const containerWidth = window.innerWidth;
+        const cardWidth = 200; // approximate card width + gap
+        const cardsPerRow = Math.floor(containerWidth / cardWidth);
+        const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
+        const cardsPerScreen = cardsPerRow * visibleRows;
+        
+        // Keep 6-8 screens worth of songs for smooth scrolling
+        const baseMax = Math.max(cardsPerScreen * 6, 50); // minimum 50 songs
+        
+        // Ensure max is a multiple of cards per row to prevent position shifting
+        const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
+        return rowsToKeep * cardsPerRow;
+      };
+      
+      const MAX_SONGS = calculateMaxSongs();
+      const combined = [...discoverItems, ...added];
+      const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
+      
+      set({
+        discoverItems: trimmed,
+        discoverCursor: next_cursor,
+        discoverHasMore: has_more,
+        isLoadingDiscover: false
+      });
+    } catch (error) {
+      set({
+        discoverError: error instanceof Error ? error.message : 'Discover load failed',
+        isLoadingDiscover: false
+      });
+    }
+  },
+
+  // Genre discover actions
+  setSelectedGenres: (genres: string[]) => {
+    set({ selectedGenres: genres });
+  },
+
+  resetGenreDiscover: () => {
+    set({
+      genreDiscoverItems: [],
+      genreDiscoverCursor: 0,
+      genreDiscoverSeed: 0,
+      genreDiscoverHasMore: true,
+      isLoadingGenreDiscover: false,
+      genreDiscoverError: null
+    });
+  },
+
+  initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 24) => {
+    const { genreDiscoverItems, isLoadingGenreDiscover, genreDiscoverSeed, genreDiscoverHasMore } = get();
+    
+    // Force reset if hasMore is false (corrupted state)
+    if (!genreDiscoverHasMore) {
+      get().resetGenreDiscover();
+    }
+    
+    // Guard: avoid re-initializing if we already have data or are loading
+    if (isLoadingGenreDiscover || (genreDiscoverItems && genreDiscoverItems.length > 0 && genreDiscoverHasMore)) {
+      return;
+    }
+    
+    // Use existing seed if already set to keep pagination deterministic
+    const stableSeed = genreDiscoverSeed && genreDiscoverSeed > 0 ? genreDiscoverSeed : seed;
+    set({ 
+      genreDiscoverItems: [], 
+      genreDiscoverCursor: 0, 
+      genreDiscoverSeed: stableSeed, 
+      genreDiscoverHasMore: true, 
+      genreDiscoverError: null 
+    });
+    await get().loadNextGenreDiscover(initialBatchSize);
+  },
+
+  loadNextGenreDiscover: async (limit = 24) => {
+    const { isLoadingGenreDiscover, genreDiscoverHasMore, genreDiscoverCursor, genreDiscoverSeed, genreDiscoverItems, selectedGenres } = get();
+    
+    if (isLoadingGenreDiscover || !genreDiscoverHasMore || selectedGenres.length === 0) {
+      return;
+    }
+    
+    set({ isLoadingGenreDiscover: true, genreDiscoverError: null });
+    try {
+      const { songs, next_cursor, has_more } = await SongsAPI.getDiscoverByGenres({ 
+        genres: selectedGenres, 
+        limit, 
+        cursor: genreDiscoverCursor, 
+        seed: genreDiscoverSeed 
+      });
+      
+      const added = Array.isArray(songs) ? songs : [];
+      
+      // Memory management: keep only recent songs to prevent memory issues
+      const calculateMaxSongs = () => {
+        if (typeof window === 'undefined') return 180;
+        const containerWidth = window.innerWidth;
+        const cardWidth = 200;
+        const cardsPerRow = Math.floor(containerWidth / cardWidth);
+        const visibleRows = Math.ceil(window.innerHeight / 300);
+        const cardsPerScreen = cardsPerRow * visibleRows;
+        const baseMax = Math.max(cardsPerScreen * 6, 50);
+        const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
+        return rowsToKeep * cardsPerRow;
+      };
+      
+      const MAX_SONGS = calculateMaxSongs();
+      const combined = [...genreDiscoverItems, ...added];
+      const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
+      
+      set({
+        genreDiscoverItems: trimmed,
+        genreDiscoverCursor: next_cursor,
+        genreDiscoverHasMore: has_more,
+        isLoadingGenreDiscover: false
+      });
+    } catch (error) {
+      set({
+        genreDiscoverError: error instanceof Error ? error.message : 'Genre discover load failed',
+        isLoadingGenreDiscover: false
+      });
+    }
+  },
+
+  addToRecentlyPlayed: (song: Song) => {
+    const { recentlyPlayed } = get();
+    const filtered = recentlyPlayed.filter(s => s.id !== song.id);
+    const updated = [song, ...filtered].slice(0, 50); // Keep last 50 songs
+    set({ recentlyPlayed: updated });
+  },
+
+  clearRecentlyPlayed: () => {
+    set({ recentlyPlayed: [] });
+  },
+
+  toggleLike: async (songId: string) => {
+    const { isLiking, likedSongs } = get();
+    
+    if (isLiking) return;
+    
+    set({ isLiking: true });
+    
+    try {
+      // Check current like status
+      const isCurrentlyLiked = likedSongs.has(songId);
+      
+      let result: boolean;
+      if (isCurrentlyLiked) {
+        result = await SongsAPI.unlikeSong(songId);
+      } else {
+        result = await SongsAPI.likeSong(songId);
+      }
+      
+      const newLikedSongs = new Set(likedSongs);
+      if (result) {
+        newLikedSongs.add(songId);
+      } else {
+        newLikedSongs.delete(songId);
+      }
+      
+      set({
+        likedSongs: newLikedSongs,
+        isLiking: false
+      });
+    } catch (error) {
+      set({
+        isLiking: false
+      });
+      console.error('Toggle like failed:', error);
+    }
+  },
+
+  loadLikedSongs: async () => {
+    try {
+      const likedSongs = await SongsAPI.getLikedSongs();
+      // Ensure likedSongs is always an array
+      const songsArray = Array.isArray(likedSongs) ? likedSongs : [];
+      const likedSongIds = new Set(songsArray.map(song => song.id));
+      set({ likedSongs: likedSongIds });
+    } catch (error) {
+      console.error('Load liked songs failed:', error);
+      set({ likedSongs: new Set() });
+    }
+  },
+
+  setCurrentView: (view: 'search' | 'random' | 'recent' | 'liked') => {
+    set({ currentView: view });
+  },
+
+  isLiked: (songId: string) => {
+    return get().likedSongs.has(songId);
+  }
+}));
