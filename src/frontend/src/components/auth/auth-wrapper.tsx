@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/auth-store';
 import { Music, LogIn, UserPlus } from 'lucide-react';
+import { APP_CONFIG } from '../../lib/config';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -16,10 +17,15 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [error, setError] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
-  // Auto-login for development mode
+  // Handle authentication state
   useEffect(() => {
-    const autoLogin = async () => {
-      if (!isLoading && !isAuthenticated) {
+    const handleAuthState = async () => {
+      if (isLoading) {
+        // Still loading, don't show anything yet
+        return;
+      }
+      
+      if (!isAuthenticated) {
         // Check if we're in development mode (localhost)
         const isDevelopment = window.location.hostname === 'localhost' || 
                              window.location.hostname === '127.0.0.1' ||
@@ -31,22 +37,25 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
             const result = await login('test_user');
             if (result.success) {
               console.log('Auto-logged in as test_user in development mode');
-              return; // Don't show auth overlay
+              setShowAuth(false);
+              return;
             }
           } catch (error) {
             console.log('Auto-login failed, showing auth overlay:', error);
           }
         }
         
-        // Show auth overlay if not in development or auto-login failed
+        // HARD BLOCK: Always show auth overlay when not authenticated
         setShowAuth(true);
-      } else if (isAuthenticated) {
+      } else {
+        // User is authenticated, hide auth overlay
         setShowAuth(false);
       }
     };
 
-    autoLogin();
+    handleAuthState();
   }, [isAuthenticated, isLoading, login]);
+
 
   // Animate auth form on mount
   useEffect(() => {
@@ -60,7 +69,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   const checkUsernameExists = async (username: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+      const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),

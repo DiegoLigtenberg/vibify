@@ -15,6 +15,9 @@ COPY . .
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 
+# Set NODE_ENV for build process
+ENV NODE_ENV=production
+
 # Build the application
 RUN npm run build
 

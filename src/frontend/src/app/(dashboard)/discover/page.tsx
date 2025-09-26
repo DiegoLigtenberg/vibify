@@ -58,7 +58,6 @@ export default function DiscoverPage() {
   useEffect(() => {
     const handleEndOfQueue = async () => {
       if (discoverHasMore && !isLoadingDiscover) {
-        console.log('🔄 Auto-loading more songs at end of queue');
         await loadNextDiscover(batchSize);
       }
     };
@@ -73,14 +72,6 @@ export default function DiscoverPage() {
 
   // Track when discoverItems changes to identify re-render timing
   useEffect(() => {
-    const renderStartTime = performance.now();
-    console.log(`🎨 Discover page re-rendering with ${discoverItems.length} songs`);
-    
-    // Use requestAnimationFrame to measure actual DOM update time
-    requestAnimationFrame(() => {
-      const renderEndTime = performance.now();
-      console.log(`🎨 DOM update completed in ${(renderEndTime - renderStartTime).toFixed(2)}ms`);
-    });
   }, [discoverItems.length]);
 
   useEffect(() => {
@@ -90,7 +81,6 @@ export default function DiscoverPage() {
     const el = sentinelRef.current;
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
-      console.log(`🔍 Intersection check: isIntersecting=${first.isIntersecting}, isLoading=${isLoadingDiscover}, hasMore=${discoverHasMore}, rootMargin=${rootMargin}`);
       
       // Only trigger if:
       // 1. Element is intersecting
@@ -103,7 +93,6 @@ export default function DiscoverPage() {
           !isProcessingLoad &&
           discoverHasMore && 
           first.intersectionRatio > 0.1) {
-        console.log(`🔄 Intersection detected - loading next batch of ${batchSize} songs (ratio: ${first.intersectionRatio})`);
         setIsProcessingLoad(true);
         loadNextDiscover(batchSize).finally(() => {
           setIsProcessingLoad(false);
@@ -147,16 +136,18 @@ export default function DiscoverPage() {
             {discoverItems.length >= maxSongs && (
               <span className="ml-2 text-yellow-400">(Memory optimized)</span>
             )}
-            <div className="text-xs text-gray-500 mt-1">
-              Loading {batchSize} songs per batch • Max {maxSongs} songs in memory
-              <br />
-              Grid: {cardsPerRow}×{Math.ceil(cardsPerScreen / cardsPerRow)} cards per screen ({cardsPerScreen} total)
-              <br />
-              Trigger: {rootMargin} root margin
-              {isLoadingDiscover && (
-                <span className="ml-2 text-blue-400">🔄 Loading more songs...</span>
-              )}
-            </div>
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 mt-1">
+                Loading {batchSize} songs per batch • Max {maxSongs} songs in memory
+                <br />
+                Grid: {cardsPerRow}×{Math.ceil(cardsPerScreen / cardsPerRow)} cards per screen ({cardsPerScreen} total)
+                <br />
+                Trigger: {rootMargin} root margin
+                {isLoadingDiscover && (
+                  <span className="ml-2 text-blue-400">🔄 Loading more songs...</span>
+                )}
+              </div>
+            )}
           </div>
           <button
             onClick={() => {

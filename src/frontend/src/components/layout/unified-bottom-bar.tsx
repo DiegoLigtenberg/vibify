@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { APP_CONFIG } from '../../lib/config';
 import { 
   Play, 
   Pause, 
@@ -146,7 +147,7 @@ export function UnifiedBottomBar() {
     }
     
     // Use backend download endpoint for native download
-    const downloadUrl = `http://localhost:8000/api/songs/${currentSong.id}/download`;
+    const downloadUrl = `${APP_CONFIG.api.baseUrl}/api/songs/${currentSong.id}/download`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = `${currentSong.artist} - ${currentSong.title}.mp3`;

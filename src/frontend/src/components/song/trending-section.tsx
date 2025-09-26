@@ -5,21 +5,23 @@ import { Section } from '../common/section';
 import { SongCard } from './song-card';
 import { useSongStore } from '../../store/song-store';
 import { usePlayerStore } from '../../store/player-store';
+import { useAuthStore } from '../../store/auth-store';
 import { TrendingUp } from 'lucide-react';
 import { UnifiedGrid } from '../common/unified-tile';
 
 export function TrendingSection() {
   const { popularSongs, isLoadingPopular, popularError, loadPopularSongs, toggleLike } = useSongStore();
   const { setCurrentSong, setQueue } = usePlayerStore();
+  const { isAuthenticated } = useAuthStore();
   
   const songsPerPage = 10; // Load more than we display for consistency
 
-  // Load initial songs
+  // Load initial songs only if authenticated
   useEffect(() => {
-    if (popularSongs.length === 0) {
+    if (isAuthenticated && popularSongs.length === 0) {
       loadPopularSongs(songsPerPage);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const handlePlay = (song: any, index: number) => {
     console.log('Playing:', song.title);

@@ -81,7 +81,7 @@ class Config:
     def validate(cls):
         """Validate required configuration"""
         required_vars = [
-            "SUPABASE_URL", "SUPABASE_KEY", "B2_KEY_ID", "B2_APPLICATION_KEY",
+            "SUPABASE_URL", "SUPABASE_ANON_KEY", "B2_KEY_ID", "B2_APPLICATION_KEY",
             "B2_BUCKET_NAME", "B2_ENDPOINT_URL", "B2_API_URL"
         ]
         

@@ -69,8 +69,9 @@ export function ExploreGenre() {
   }, []); // This will run on every mount
 
   const handleGenreClick = (genre: Genre) => {
-    console.log('Exploring genre:', genre.name);
-    router.push(`/genre?selected=${encodeURIComponent(genre.name)}`);
+    // Store selected genre in sessionStorage for clean navigation
+    sessionStorage.setItem('selectedGenre', genre.name);
+    router.push('/genre');
   };
 
   // No loading state needed since we're using hardcoded data

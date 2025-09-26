@@ -7,6 +7,9 @@
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_DEVELOPMENT = NODE_ENV === 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
+console.log( "NODE_ENV", NODE_ENV )
+console.log( "IS_DEVELOPMENT", IS_DEVELOPMENT )
+console.log( "IS_PRODUCTION", IS_PRODUCTION )
 
 // Environment-specific configuration
 const ENV_CONFIG = {
@@ -26,10 +29,10 @@ const ENV_CONFIG = {
   },
   
   production: {
-    // API Configuration
-    API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://vibify-production.up.railway.app',
-    API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://vibify-production.up.railway.app',
-    WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'wss://vibify-production.up.railway.app',
+    // API Configuration - use same env vars as development
+    API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    API_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    WS_URL: null, // Not used in current implementation
     
     // Production settings
     DEBUG: false,
@@ -66,9 +69,13 @@ export const APP_CONFIG = {
   // API CONFIGURATION
   // ===========================================
   api: {
-    baseUrl: currentConfig.API_BASE_URL,
-    url: currentConfig.API_URL,
-    wsUrl: currentConfig.WS_URL,
+    baseUrl: currentConfig.API_BASE_URL || (() => {
+      throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is required');
+    })(),
+    url: currentConfig.API_URL || (() => {
+      throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is required');
+    })(),
+    wsUrl: currentConfig.WS_URL, // Not used in current implementation
     timeout: 10000, // 10 seconds
     retryAttempts: 3,
     retryDelay: 1000, // 1 second

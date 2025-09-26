@@ -20,6 +20,19 @@ async def test_endpoint():
     """Test endpoint to verify API is working"""
     return {"message": "Songs API is working!", "status": "ok"}
 
+
+@router.get("/popular")
+async def get_popular_songs(limit: int = Query(10, ge=1, le=100)):
+    """Get popular songs based on like count and view count"""
+    try:
+        song_service = SongService()
+        songs = song_service.get_popular_songs(limit=limit)  # Remove await
+        logger.info(f"Retrieved {len(songs)} popular songs")
+        return songs
+    except Exception as e:
+        logger.error(f"Error getting popular songs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get popular songs: {str(e)}")
+
 @router.get("/debug")
 async def debug_endpoint():
     """Debug endpoint to check what's happening"""
@@ -91,17 +104,6 @@ async def get_random_songs(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching random songs: {str(e)}")
 
-@router.get("/popular", response_model=List[Song])
-async def get_popular_songs(
-    limit: int = Query(10, ge=1, le=50, description="Number of popular songs to return")
-):
-    """Get popular songs ordered by streams count"""
-    try:
-        song_service = SongService()
-        songs = song_service.get_popular_songs(limit=limit)
-        return songs
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching popular songs: {str(e)}")
 
 @router.get("/discover")
 async def discover_songs(
@@ -460,6 +462,18 @@ async def get_song_thumbnail(song_id: str):
     except Exception as e:
         logger.error(f"Error serving thumbnail for song {song_id}: {e}")
         raise HTTPException(status_code=500, detail="Error serving thumbnail")
+
+@router.get("/config-test")
+async def config_test():
+    """Test endpoint to check configuration"""
+    from ..config.simple_config import Config
+    return {
+        "message": "Config test",
+        "supabase_url_set": bool(Config.SUPABASE_URL),
+        "supabase_key_set": bool(Config.SUPABASE_SERVICE_ROLE_KEY),
+        "python_env": Config.PYTHON_ENV,
+        "is_production": Config.IS_PRODUCTION
+    }
 
 # IMPORTANT: Keep this route LAST to avoid conflicts with specific routes above
 @router.get("/{song_id}")

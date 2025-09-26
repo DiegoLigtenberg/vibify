@@ -19,6 +19,7 @@ export interface Song {
   created_at: string;
   updated_at: string;
   genres?: string[];
+  is_placeholder?: boolean; // For placeholder songs shown to unauthenticated users
 }
 
 export interface SongWithGenres extends Song {

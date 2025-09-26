@@ -5,6 +5,7 @@ import { X, Play, Heart, MoreHorizontal, Download } from 'lucide-react';
 import { Song } from '@/shared/types/song';
 import { useSongStore } from '@/store/song-store';
 import { SongImage } from '../ui/song-image';
+import { APP_CONFIG } from '../../lib/config';
 
 interface SongDetailsPopupProps {
   song: Song | null;
@@ -191,7 +192,7 @@ export default function SongDetailsPopup({
               }
               
               // Use backend download endpoint for native download
-              const downloadUrl = `http://localhost:8000/api/songs/${song.id}/download`;
+              const downloadUrl = `${APP_CONFIG.api.baseUrl}/api/songs/${song.id}/download`;
               const link = document.createElement('a');
               link.href = downloadUrl;
               link.download = `${song.artist} - ${song.title}.mp3`;

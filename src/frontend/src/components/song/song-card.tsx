@@ -38,6 +38,11 @@ export function SongCard({
   const isCurrentlyLoading = isCurrentSong && isLoading;
 
   const handlePlay = () => {
+    // Don't allow playing placeholder songs
+    if (song.is_placeholder) {
+      return;
+    }
+    
     // Prevent multiple instances - if same song is already playing/loading, don't do anything
     if (isCurrentSong && (isPlaying || isLoading)) {
       return;
@@ -69,6 +74,11 @@ export function SongCard({
     e.preventDefault();
     e.stopPropagation();
     
+    // Don't allow liking placeholder songs
+    if (song.is_placeholder) {
+      return;
+    }
+    
     if (onLike) {
       onLike(song);
     } else {
@@ -85,15 +95,18 @@ export function SongCard({
   return (
     <div 
       className={cn(
-        'song-card group cursor-pointer hover:bg-gray-800/50 transition-colors',
-        'bg-spotify-gray rounded-lg hover:bg-spotify-lightgray',
+        'song-card group transition-colors',
+        'bg-spotify-gray rounded-lg',
         'aspect-square flex flex-col justify-between',
         'touch-manipulation', // Better touch handling
         compact ? 'p-2' : 'p-3',
         isCurrentSong && (isPlaying || isLoading) ? 'ring-2 ring-spotify-green' : '',
+        song.is_placeholder 
+          ? 'opacity-60 cursor-default' 
+          : 'cursor-pointer hover:bg-spotify-lightgray',
         className
       )}
-      onClick={handlePlay}
+      onClick={song.is_placeholder ? undefined : handlePlay}
     >
       {/* Thumbnail */}
       <div className="relative mb-0.5">

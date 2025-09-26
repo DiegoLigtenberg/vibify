@@ -3,6 +3,7 @@ import type { Playlist, PlaylistWithSongs, CreatePlaylistRequest, UpdatePlaylist
 import type { Album, AlbumWithSongs, AlbumSearchParams, AlbumSearchResult } from '@/shared/types/album';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 import { APP_CONFIG } from './config';
+import { useAuthStore } from '../store/auth-store';
 
 // Utility function to sanitize search queries for PostgreSQL full-text search
 function sanitizeSearchQuery(query: string): string {
@@ -622,6 +623,34 @@ export class AlbumsAPI {
     } catch (error) {
       console.error('Error fetching album:', error);
       return null;
+    }
+  }
+
+  // Upload API
+  static async uploadSong(formData: FormData): Promise<{ success: boolean; song_id: string; message: string; audio_url: string; thumbnail_url?: string }> {
+    const { user } = useAuthStore.getState();
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/upload/song`, {
+        method: 'POST',
+        headers: {
+          'X-User-ID': user.id,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Upload failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error uploading song:', error);
+      throw error;
     }
   }
 

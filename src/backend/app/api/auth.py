@@ -2,12 +2,48 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..services.song_service import SongService
 from ..config.simple_config import Config
+from ..config.logging_global import get_logger
 import httpx
-import logging
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+@router.get("/health")
+async def auth_health_check():
+    """Health check for auth service"""
+    try:
+        # Test database connection
+        rpc_url = f"{Config.SUPABASE_URL}/rest/v1/rpc/login_username"
+        headers = {
+            "Content-Type": "application/json",
+            "apikey": Config.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {Config.SUPABASE_SERVICE_ROLE_KEY}",
+            "Prefer": "return=representation"
+        }
+        payload = {"username_input": "test_user"}
+        
+        async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.post(rpc_url, headers=headers, json=payload)
+            response.raise_for_status()
+            result = response.json()
+        
+        return {
+            "status": "healthy",
+            "supabase_connected": True,
+            "supabase_url": Config.SUPABASE_URL,
+            "service_key_present": bool(Config.SUPABASE_SERVICE_ROLE_KEY),
+            "test_result": result
+        }
+    except Exception as e:
+        logger.error(f"Auth health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "supabase_connected": False,
+            "supabase_url": Config.SUPABASE_URL,
+            "service_key_present": bool(Config.SUPABASE_SERVICE_ROLE_KEY),
+            "error": str(e)
+        }
 
 class LoginRequest(BaseModel):
     username: str
@@ -29,6 +65,15 @@ async def login(request: LoginRequest):
         if not request.username or len(request.username) > 10:
             raise HTTPException(status_code=400, detail="Username must be 1-10 characters")
         
+        # Check if required environment variables are set
+        if not Config.SUPABASE_URL:
+            logger.error("SUPABASE_URL not configured")
+            raise HTTPException(status_code=500, detail="Database configuration missing")
+        
+        if not Config.SUPABASE_SERVICE_ROLE_KEY:
+            logger.error("SUPABASE_SERVICE_ROLE_KEY not configured")
+            raise HTTPException(status_code=500, detail="Database authentication missing")
+        
         # Call Supabase RPC function
         rpc_url = f"{Config.SUPABASE_URL}/rest/v1/rpc/login_username"
         headers = {
@@ -39,13 +84,29 @@ async def login(request: LoginRequest):
         }
         payload = {"username_input": request.username}
         
+        logger.info(f"Attempting login for username: {request.username}")
+        logger.info(f"Supabase URL: {Config.SUPABASE_URL}")
+        logger.info(f"Service role key present: {bool(Config.SUPABASE_SERVICE_ROLE_KEY)}")
+        
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(rpc_url, headers=headers, json=payload)
-            response.raise_for_status()
+            
+            # Check if response is successful
+            if response.status_code != 200:
+                logger.error(f"Supabase RPC returned status {response.status_code}: {response.text}")
+                if response.status_code == 400:
+                    try:
+                        error_data = response.json()
+                        return AuthResponse(success=False, error=error_data.get("error", "Username not found"))
+                    except:
+                        return AuthResponse(success=False, error="Username not found")
+                else:
+                    raise HTTPException(status_code=500, detail=f"Supabase RPC error: {response.status_code}")
+            
             result = response.json()
         
         if not result.get("success"):
-            raise HTTPException(status_code=400, detail=result.get("error", "Login failed"))
+            return AuthResponse(success=False, error=result.get("error", "Login failed"))
         
         return AuthResponse(
             success=True,
@@ -54,12 +115,12 @@ async def login(request: LoginRequest):
             created_at=result.get("created_at", "")
         )
         
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Supabase RPC error: {e.response.text}")
-        raise HTTPException(status_code=500, detail="Authentication service error")
+    except httpx.RequestError as e:
+        logger.error(f"Request error during login: {e}")
+        raise HTTPException(status_code=500, detail=f"Network error: {str(e)}")
     except Exception as e:
-        logger.error(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Login error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/register", response_model=AuthResponse)
 async def register(request: RegisterRequest):
@@ -80,11 +141,23 @@ async def register(request: RegisterRequest):
         
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(rpc_url, headers=headers, json=payload)
-            response.raise_for_status()
+            
+            # Check if response is successful
+            if response.status_code != 200:
+                logger.error(f"Supabase RPC returned status {response.status_code}: {response.text}")
+                if response.status_code == 400:
+                    try:
+                        error_data = response.json()
+                        return AuthResponse(success=False, error=error_data.get("error", "Registration failed"))
+                    except:
+                        return AuthResponse(success=False, error="Registration failed")
+                else:
+                    raise HTTPException(status_code=500, detail=f"Supabase RPC error: {response.status_code}")
+            
             result = response.json()
         
         if not result.get("success"):
-            raise HTTPException(status_code=400, detail=result.get("error", "Registration failed"))
+            return AuthResponse(success=False, error=result.get("error", "Registration failed"))
         
         return AuthResponse(
             success=True,
@@ -93,12 +166,12 @@ async def register(request: RegisterRequest):
             created_at=result.get("created_at", "")
         )
         
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Supabase RPC error: {e.response.text}")
-        raise HTTPException(status_code=500, detail="Authentication service error")
+    except httpx.RequestError as e:
+        logger.error(f"Request error during registration: {e}")
+        raise HTTPException(status_code=500, detail=f"Network error: {str(e)}")
     except Exception as e:
-        logger.error(f"Register error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Register error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 class DeleteRequest(BaseModel):
     username: str
@@ -109,6 +182,31 @@ async def delete_account(request: DeleteRequest):
     try:
         if not request.username or len(request.username) > 10:
             raise HTTPException(status_code=400, detail="Invalid username")
+        
+        # SECURITY: Verify user exists and is authenticated before deletion
+        logger.info(f"Verifying user exists before deletion: {request.username}")
+        
+        # First verify the user exists by trying to login
+        verify_rpc_url = f"{Config.SUPABASE_URL}/rest/v1/rpc/login_username"
+        verify_headers = {
+            "Content-Type": "application/json",
+            "apikey": Config.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {Config.SUPABASE_SERVICE_ROLE_KEY}",
+            "Prefer": "return=representation"
+        }
+        verify_payload = {"username_input": request.username}
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            verify_response = await client.post(verify_rpc_url, headers=verify_headers, json=verify_payload)
+            
+            if verify_response.status_code != 200:
+                logger.warning(f"User verification failed for '{request.username}': {verify_response.status_code}")
+                raise HTTPException(status_code=401, detail="User not found or not authenticated")
+            
+            verify_result = verify_response.json()
+            if not verify_result.get("success"):
+                logger.warning(f"User verification failed for '{request.username}': {verify_result.get('error')}")
+                raise HTTPException(status_code=401, detail="User not found or not authenticated")
         
         # Prevent deletion of test user in development
         if Config.IS_DEVELOPMENT and request.username == Config.TEST_USER_USERNAME:
@@ -144,7 +242,11 @@ async def delete_account(request: DeleteRequest):
         if not result.get("success"):
             raise HTTPException(status_code=400, detail=result.get("error", "Delete failed"))
         
-        return {"success": True, "message": "Account deleted successfully"}
+        return {
+            "success": True, 
+            "message": "Account deleted successfully",
+            "force_logout": True  # Signal frontend to immediately logout
+        }
         
     except httpx.HTTPStatusError as e:
         logger.error(f"Supabase RPC error: {e.response.text}")

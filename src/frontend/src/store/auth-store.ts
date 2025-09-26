@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { APP_CONFIG } from '../lib/config';
 
 export interface User {
   id: string;
@@ -38,7 +39,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+          const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/auth/register', {
+          const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/auth/register`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -129,6 +130,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           isNewAccount: false,
+          isLoading: false,
           error: null,
         });
       },
@@ -142,7 +144,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('No user logged in');
           }
 
-          const response = await fetch('http://127.0.0.1:8000/api/auth/delete', {
+          const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/auth/delete`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
@@ -155,6 +157,9 @@ export const useAuthStore = create<AuthState>()(
           if (result.success) {
             // Clear all auth data from localStorage
             localStorage.removeItem('auth-storage');
+            
+            // Clear any other potential cached data
+            localStorage.clear();
             
             set({
               user: null,

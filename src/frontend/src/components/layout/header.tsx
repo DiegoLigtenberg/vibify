@@ -101,7 +101,12 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
       const result = await deleteAccount();
       if (result.success) {
         setShowUserDropdown(false);
-        // AuthWrapper will show the auth overlay automatically
+        // IMMEDIATE LOGOUT - no matter what page we're on
+        logout();
+        // Force clear all state immediately
+        localStorage.clear();
+        // Force auth screen to show
+        window.location.href = '/';
       } else {
         alert('Failed to delete account: ' + result.error);
       }
