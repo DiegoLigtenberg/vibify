@@ -1,16 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Section } from '../common/section';
 import { Music, TrendingUp, Star, Zap } from 'lucide-react';
 import { UnifiedGrid, UnifiedTile } from '../common/unified-tile';
-import { SongsAPI } from '../../lib/api';
 import { useRouter } from 'next/navigation';
-
-interface Genre {
-  name: string;
-  song_count: number;
-}
+import { TOP_GENRES, Genre } from '../../lib/constants/genres';
 
 const genreColors = [
   'from-pink-500 to-rose-500',
@@ -28,59 +23,57 @@ const genreColors = [
 const genreIcons = [Music, TrendingUp, Star, Zap, Music, Music, Music, Music, Music, Music];
 
 export function ExploreGenre() {
-  const [genres, setGenres] = useState<Genre[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [displayedGenres, setDisplayedGenres] = useState<Genre[]>([]);
+  const [columns, setColumns] = useState(6);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const loadGenres = async () => {
-      try {
-        setIsLoading(true);
-        const genreData = await SongsAPI.getGenres({ limit: 20, min_songs: 1 });
-        
-        // Sort alphabetically and take first 6 for consistent display
-        const sorted = genreData.sort((a, b) => a.name.localeCompare(b.name));
-        setGenres(sorted.slice(0, 6));
-      } catch (error) {
-        console.error('Error loading genres:', error);
-        setGenres([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Always show 6 random genres on home page (1 row)
+  const computeColumns = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Always use 6 columns for home page
+    setColumns(6);
+    
+    // Randomly select 6 genres from top 30 using Fisher-Yates shuffle
+    const shuffled = [...TOP_GENRES];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const selectedGenres = shuffled.slice(0, 6);
+    setDisplayedGenres(selectedGenres);
+  };
 
-    loadGenres();
-  }, []);
+  useEffect(() => {
+    // Force random selection on every mount/remount
+    computeColumns();
+    
+    const handleResize = () => computeColumns();
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // Empty dependency array ensures this runs on every mount
+
+  // Additional effect to ensure randomization on every page load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const shuffled = [...TOP_GENRES];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const selectedGenres = shuffled.slice(0, 6);
+      setDisplayedGenres(selectedGenres);
+    }
+  }, []); // This will run on every mount
 
   const handleGenreClick = (genre: Genre) => {
     console.log('Exploring genre:', genre.name);
     router.push(`/genre?selected=${encodeURIComponent(genre.name)}`);
   };
 
-  if (isLoading) {
-    return (
-      <Section
-        title="Explore by Genre"
-        subtitle="Find your perfect sound"
-        showAll={true}
-        onShowAll={() => router.push('/genre')}
-      >
-        <UnifiedGrid>
-          {Array.from({ length: 6 }).map((_, index) => (
-            <UnifiedTile key={index}>
-              <div className="aspect-square bg-gray-700 rounded mb-2 flex items-center justify-center animate-pulse">
-                <Music className="w-4 h-4 text-gray-500" />
-              </div>
-              <div>
-                <div className="h-3 bg-gray-700 rounded animate-pulse mb-1"></div>
-                <div className="h-2 bg-gray-700 rounded animate-pulse w-3/4"></div>
-              </div>
-            </UnifiedTile>
-          ))}
-        </UnifiedGrid>
-      </Section>
-    );
-  }
+  // No loading state needed since we're using hardcoded data
 
   return (
     <Section
@@ -90,7 +83,7 @@ export function ExploreGenre() {
       onShowAll={() => router.push('/genre')}
     >
       <UnifiedGrid>
-        {genres.map((genre, index) => {
+        {displayedGenres.map((genre, index) => {
           const colorIndex = index % genreColors.length;
           const iconIndex = index % genreIcons.length;
           const IconComponent = genreIcons[iconIndex];
@@ -108,7 +101,7 @@ export function ExploreGenre() {
                   {genre.name}
                 </h3>
                 <p className="text-[10px] text-spotify-muted mt-1">
-                  {genre.song_count} songs
+                  {genre.songCount.toLocaleString()} songs
                 </p>
               </div>
             </UnifiedTile>

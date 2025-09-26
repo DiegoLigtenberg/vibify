@@ -20,7 +20,6 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const setCurrentSong = usePlayerStore(s => s.setCurrentSong);
@@ -98,25 +97,19 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
 
-      {/* Logo - Hidden on mobile when search is expanded */}
+      {/* Logo - Always visible */}
       <Link 
         href="/" 
-        className={cn(
-          "flex items-center space-x-2 transition-all duration-300",
-          isSearchExpanded ? "hidden" : "flex"
-        )}
+        className="flex items-center space-x-2 transition-all duration-300"
       >
         <Music className="h-6 w-6 md:h-8 md:w-8 text-spotify-green" />
         <span className="text-lg md:text-xl font-bold text-white">Vibify</span>
       </Link>
 
-      {/* Search Bar - Responsive */}
+      {/* Search Bar - Always visible */}
       <div className={cn(
         "relative transition-all duration-300",
-        isSearchExpanded 
-          ? "absolute inset-0 mx-4 z-20" 
-          : "hidden md:block md:absolute md:w-80",
-        "md:left-64 md:top-1/2 md:transform md:-translate-y-1/2"
+        "absolute w-80 left-64 top-1/2 transform -translate-y-1/2"
       )} ref={searchRef}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
@@ -127,17 +120,14 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => {
-              setIsSearchExpanded(true);
               if (searchQuery.length > 0 && searchResults.length > 0) {
                 setShowSearchResults(true);
               }
             }}
           />
-          {/* Mobile search close button */}
-          {isSearchExpanded && (
+          {searchQuery && (
             <button
               onClick={() => {
-                setIsSearchExpanded(false);
                 setSearchQuery('');
                 setShowSearchResults(false);
               }}
@@ -191,20 +181,9 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         )}
       </div>
       
-      {/* Desktop Search Toggle Button */}
-      <button
-        onClick={() => setIsSearchExpanded(true)}
-        className="md:hidden p-2 text-white hover:text-spotify-green transition-colors"
-        aria-label="Search"
-      >
-        <Search className="h-6 w-6" />
-      </button>
         
-      {/* Right side - User Info - Hidden on mobile when search is expanded */}
-      <div className={cn(
-        "flex items-center space-x-3 bg-black/50 rounded-full px-3 md:px-4 py-2 hover:bg-black/70 transition-colors cursor-pointer",
-        isSearchExpanded ? "hidden" : "flex"
-      )}>
+      {/* Right side - User Info - Always visible */}
+      <div className="flex items-center space-x-3 bg-black/50 rounded-full px-3 md:px-4 py-2 hover:bg-black/70 transition-colors cursor-pointer">
         <div className="w-8 h-8 bg-spotify-green rounded-full flex items-center justify-center">
           <User className="h-4 w-4 text-white" />
         </div>

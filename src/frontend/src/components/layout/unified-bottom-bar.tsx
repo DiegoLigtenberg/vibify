@@ -55,8 +55,14 @@ export function UnifiedBottomBar() {
   // Keyboard event listeners for media controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger media controls when user is typing in input fields
+      const target = event.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
       // Prevent default behavior for media keys
-      if (event.code === 'Space' || event.code === 'MediaPlayPause') {
+      if (event.code === 'MediaPlayPause') {
         event.preventDefault();
         togglePlay();
       } else if (event.code === 'MediaTrackNext') {

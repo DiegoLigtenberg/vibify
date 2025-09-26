@@ -1,0 +1,35 @@
+// Top 30 genres with most songs in database (as of latest data)
+export const TOP_GENRES = [
+  { name: 'electronic', songCount: 2072 },
+  { name: 'rock', songCount: 1565 },
+  { name: 'pop', songCount: 1377 },
+  { name: 'ambient', songCount: 918 },
+  { name: 'alternative', songCount: 787 },
+  { name: 'folk', songCount: 653 },
+  { name: 'hip-hop', songCount: 639 },
+  { name: 'dance', songCount: 624 },
+  { name: 'instrumental', songCount: 586 },
+  { name: 'indie', songCount: 580 },
+  { name: 'metal', songCount: 536 },
+  { name: 'punk', songCount: 365 },
+  { name: 'cover', songCount: 363 },
+  { name: 'world', songCount: 358 },
+  { name: 'classical', songCount: 356 },
+  { name: 'chill', songCount: 334 },
+  { name: 'soundtrack', songCount: 296 },
+  { name: 'experimental', songCount: 295 },
+  { name: 'jazz', songCount: 279 },
+  { name: 'house', songCount: 278 },
+  { name: 'country', songCount: 277 },
+  { name: 'bluegrass', songCount: 264 },
+  { name: 'techno', songCount: 259 },
+  { name: 'acoustic', songCount: 258 },
+  { name: 'pop punk', songCount: 258 },
+  { name: 'remix', songCount: 228 },
+  { name: 'rap', songCount: 223 },
+  { name: 'r&b', songCount: 214 },
+  { name: 'funk', songCount: 197 },
+  { name: 'soul', songCount: 188 }
+] as const;
+
+export type Genre = typeof TOP_GENRES[number];

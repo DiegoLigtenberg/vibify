@@ -6,24 +6,16 @@ import React, { useState, useEffect, useRef } from 'react';
 export const dynamic = 'force-dynamic';
 import { UnifiedGrid } from '../../../components/common/unified-tile';
 import { SongCard } from '../../../components/song/song-card';
-import { SongsAPI } from '../../../lib/api';
 import { usePlayerStore } from '../../../store/player-store';
 import { useSongStore } from '../../../store/song-store';
 import { X, Plus, Search } from 'lucide-react';
 import { calculateBatchSizing } from '../../../lib/batch-sizing';
-
-interface Genre {
-  name: string;
-  song_count: number;
-}
+import { TOP_GENRES, Genre } from '../../../lib/constants/genres';
 
 export default function GenrePage() {
-  const [allGenres, setAllGenres] = useState<Genre[]>([]);
   const [randomGenres, setRandomGenres] = useState<Genre[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGenres, setFilteredGenres] = useState<Genre[]>([]);
-  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   
   // State for responsive batch sizing
@@ -45,35 +37,54 @@ export default function GenrePage() {
     genreDiscoverItems, 
     genreDiscoverHasMore, 
     isLoadingGenreDiscover,
+    genreDiscoverError,
     setSelectedGenres,
     initGenreDiscover, 
     loadNextGenreDiscover, 
     resetGenreDiscover 
   } = useSongStore();
 
-  // Load all genres on mount
+  // Calculate responsive random genres on mount and resize
   useEffect(() => {
-    const loadGenres = async () => {
-      try {
-        setIsLoadingGenres(true);
-        const genreData = await SongsAPI.getGenres({ limit: 3000, min_songs: 1 });
-        console.log('Loaded genres:', genreData.slice(0, 10)); // Debug: show first 10 genres
-        console.log('Looking for rock:', genreData.find(g => g.name === 'rock')); // Debug: check if rock exists
-        setAllGenres(genreData);
-        
-        // Get 18 random genres for display (3 rows of 6)
-        const shuffled = [...genreData].sort(() => 0.5 - Math.random());
-        setRandomGenres(shuffled.slice(0, 18));
-      } catch (err) {
-        console.error('Error loading genres:', err);
-        setError('Failed to load genres');
-      } finally {
-        setIsLoadingGenres(false);
+    const calculateRandomGenres = () => {
+      if (typeof window === 'undefined') return;
+      
+      const containerWidth = window.innerWidth;
+      let cardsPerRow;
+      
+      if (containerWidth < 640) { // sm - mobile
+        cardsPerRow = 2;
+      } else if (containerWidth < 768) { // md - small tablet
+        cardsPerRow = 3;
+      } else if (containerWidth < 1024) { // lg - tablet
+        cardsPerRow = 4;
+      } else if (containerWidth < 1280) { // xl - small desktop
+        cardsPerRow = 5;
+      } else if (containerWidth < 1920) { // 2xl - medium desktop (up to 1920x1080)
+        cardsPerRow = 6;
+      } else { // 3xl+ - very large desktop (above 1920x1080)
+        cardsPerRow = 8;
       }
+      
+      // Randomly select n genres from top 30, where n = cardsPerRow (1 row)
+      // Use Fisher-Yates shuffle for better randomness
+      const shuffled = [...TOP_GENRES];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const selectedGenres = shuffled.slice(0, cardsPerRow);
+      setRandomGenres(selectedGenres);
     };
 
-    loadGenres();
-  }, []);
+    // Always calculate random genres on mount (including refresh)
+    calculateRandomGenres();
+    
+    const handleResize = () => calculateRandomGenres();
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // Empty dependency array is correct - we want this to run on every mount
 
   // Filter genres based on search query (loose matching)
   useEffect(() => {
@@ -81,26 +92,16 @@ export default function GenrePage() {
       setFilteredGenres([]);
     } else {
       const query = searchQuery.toLowerCase();
-      console.log('Searching for:', query); // Debug
-      console.log('Available genres count:', allGenres.length); // Debug
-      const filtered = allGenres.filter(genre =>
+      const filtered = TOP_GENRES.filter(genre =>
         genre.name.toLowerCase().includes(query) ||
         genre.name.toLowerCase().split(' ').some(word => word.includes(query)) ||
         query.split(' ').some(word => genre.name.toLowerCase().includes(word))
       );
-      console.log('Filtered results:', filtered.slice(0, 5)); // Debug: show first 5 results
       setFilteredGenres(filtered.slice(0, 20)); // Limit to 20 suggestions
     }
-  }, [searchQuery, allGenres]);
+  }, [searchQuery]);
 
-  // Load songs when genres are selected
-  useEffect(() => {
-    if (selectedGenres.length > 0) {
-      initGenreDiscover(selectedGenres);
-    } else {
-      resetGenreDiscover();
-    }
-  }, [selectedGenres, initGenreDiscover, resetGenreDiscover]);
+  // Load songs when genres are selected - now handled directly in handleGenreToggle
 
   // Handle responsive batch sizing
   useEffect(() => {
@@ -159,10 +160,22 @@ export default function GenrePage() {
   // Scroll-based fallback disabled for testing
 
   const handleGenreToggle = (genreName: string) => {
+    console.log('🎵 Genre toggle clicked:', genreName, 'Current genres:', selectedGenres);
+    
     if (selectedGenres.includes(genreName)) {
-      setSelectedGenres(selectedGenres.filter(g => g !== genreName));
+      const newGenres = selectedGenres.filter(g => g !== genreName);
+      console.log('🎵 Removing genre, new genres:', newGenres);
+      setSelectedGenres(newGenres);
+      if (newGenres.length > 0) {
+        initGenreDiscover(newGenres);
+      } else {
+        resetGenreDiscover();
+      }
     } else if (selectedGenres.length < 3) {
-      setSelectedGenres([...selectedGenres, genreName]);
+      const newGenres = [...selectedGenres, genreName];
+      console.log('🎵 Adding genre, new genres:', newGenres);
+      setSelectedGenres(newGenres);
+      initGenreDiscover(newGenres);
     }
   };
 
@@ -188,39 +201,7 @@ export default function GenrePage() {
     return colors[index % colors.length];
   };
 
-  if (isLoadingGenres) {
-    return (
-      <div className="flex-1 text-white vibify-gradient">
-        <div className="p-4">
-          <h1 className="text-3xl font-bold mb-6">Browse by Genre</h1>
-          <div className="grid grid-cols-6 gap-3 mb-8">
-            {Array.from({ length: 18 }).map((_, i) => (
-              <div key={i} className="aspect-[5/4] bg-gray-800 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex-1 text-white vibify-gradient">
-        <div className="p-4">
-          <h1 className="text-3xl font-bold mb-6">Browse by Genre</h1>
-          <div className="text-center py-12">
-            <p className="text-red-400 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="bg-spotify-green text-white px-4 py-2 rounded-full hover:bg-spotify-green/80"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // No loading or error states needed since we're using hardcoded data
 
   return (
     <div className="flex-1 text-white vibify-gradient">
@@ -311,18 +292,18 @@ export default function GenrePage() {
             )}
           </div>
 
-          {/* Random Genres Display (3 rows of 6) */}
-          <div className="grid grid-cols-6 gap-3">
+          {/* Random Genres Display (1 row, responsive) */}
+          <div className="flex gap-3">
             {randomGenres.map((genre, index) => (
               <button
                 key={genre.name}
                 onClick={() => handleGenreToggle(genre.name)}
                 disabled={!selectedGenres.includes(genre.name) && selectedGenres.length >= 3}
-                className={`aspect-[5/4] rounded-lg p-3 text-left transition-all ${
+                className={`flex-1 aspect-[5/4] rounded-lg p-3 text-left transition-all ${
                   selectedGenres.includes(genre.name)
-                    ? 'bg-spotify-green text-black scale-105'
+                    ? 'ring-2 ring-spotify-green ring-offset-2 ring-offset-gray-900 scale-105'
                     : 'bg-gradient-to-br hover:scale-105 hover:brightness-110'
-                } ${getGenreColor(index)} ${
+                } ${!selectedGenres.includes(genre.name) ? getGenreColor(index) : 'bg-gray-800'} ${
                   !selectedGenres.includes(genre.name) && selectedGenres.length >= 3
                     ? 'opacity-50 cursor-not-allowed'
                     : 'cursor-pointer'
@@ -330,6 +311,7 @@ export default function GenrePage() {
               >
                 <div className="h-full flex flex-col justify-center">
                   <h3 className="text-sm font-bold">{genre.name}</h3>
+                  <p className="text-xs opacity-75 mt-1">{genre.songCount.toLocaleString()} songs</p>
                 </div>
               </button>
             ))}
@@ -378,7 +360,14 @@ export default function GenrePage() {
               </UnifiedGrid>
             ) : !isLoadingGenreDiscover && (
               <div className="text-center py-12">
-                <p className="text-gray-400 text-lg">No songs found for selected genres</p>
+                <p className="text-gray-400 text-lg">
+                  {genreDiscoverError || "No songs found for selected genres"}
+                </p>
+                {genreDiscoverError && (
+                  <p className="text-gray-500 text-sm mt-2">
+                    Try selecting different genre combinations
+                  </p>
+                )}
               </div>
             )}
 

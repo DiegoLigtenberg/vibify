@@ -220,16 +220,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   togglePlay: () => {
-    const { howl, isPlaying } = get();
+    const { howl } = get();
     if (howl) {
       // Use Howler's actual playing state for more reliable toggle
       if (howl.playing()) {
         howl.pause();
+        // Immediately update UI state to match Howler
+        set({ isPlaying: false });
       } else {
         howl.play();
+        // Immediately update UI state to match Howler
+        set({ isPlaying: true });
       }
-    } else if (!isPlaying) {
-      // If no howl instance but we're not playing, try to play
+      
+      // Force a sync check after a short delay to ensure state is correct
+      setTimeout(() => {
+        const { howl: currentHowl } = get();
+        if (currentHowl) {
+          const actuallyPlaying = currentHowl.playing();
+          set({ isPlaying: actuallyPlaying });
+        }
+      }, 50);
+    } else {
+      // If no howl instance, try to play
       const { play } = get();
       play();
     }

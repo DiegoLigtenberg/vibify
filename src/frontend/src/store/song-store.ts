@@ -351,21 +351,22 @@ export const useSongStore = create<SongState>((set, get) => ({
   },
 
   initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = getResponsiveBatchSize()) => {
-    const { genreDiscoverItems, isLoadingGenreDiscover, genreDiscoverSeed, genreDiscoverHasMore } = get();
+    const { genreDiscoverItems, isLoadingGenreDiscover, genreDiscoverSeed, genreDiscoverHasMore, selectedGenres } = get();
+    
+    console.log('🎵 initGenreDiscover called with genres:', genres, 'Current selectedGenres:', selectedGenres);
     
     // Force reset if hasMore is false (corrupted state)
     if (!genreDiscoverHasMore) {
       get().resetGenreDiscover();
     }
     
-    // Guard: avoid re-initializing if we already have data or are loading
-    if (isLoadingGenreDiscover || (genreDiscoverItems && genreDiscoverItems.length > 0 && genreDiscoverHasMore)) {
-      return;
-    }
+    // Always reinitialize when called - the component handles when to call this
+    console.log('🎵 Reinitializing genre discover with new genres');
     
     // Use existing seed if already set to keep pagination deterministic
     const stableSeed = genreDiscoverSeed && genreDiscoverSeed > 0 ? genreDiscoverSeed : seed;
     set({ 
+      selectedGenres: genres, // Update selectedGenres in store
       genreDiscoverItems: [], 
       genreDiscoverCursor: 0, 
       genreDiscoverSeed: stableSeed, 
@@ -457,12 +458,25 @@ export const useSongStore = create<SongState>((set, get) => ({
       const totalTime = performance.now() - startTime;
       console.log(`⚡ Genre total processing time: ${processDuration.toFixed(2)}ms (API: ${apiDuration.toFixed(2)}ms, Processing: ${processDuration.toFixed(2)}ms, Total: ${totalTime.toFixed(2)}ms)`);
       
-      set({
-        genreDiscoverItems: finalSongs,
-        genreDiscoverCursor: next_cursor,
-        genreDiscoverHasMore: has_more,
-        isLoadingGenreDiscover: false
-      });
+      // If no songs found and this is the first page (cursor 0), clear all results
+      if (finalSongs.length === 0 && genreDiscoverCursor === 0) {
+        console.log('🎵 No songs found for selected genres - clearing results');
+        set({
+          genreDiscoverItems: [],
+          genreDiscoverCursor: 0,
+          genreDiscoverHasMore: false,
+          isLoadingGenreDiscover: false,
+          genreDiscoverError: `No songs found for genres: ${selectedGenres.join(', ')}`
+        });
+      } else {
+        set({
+          genreDiscoverItems: finalSongs,
+          genreDiscoverCursor: next_cursor,
+          genreDiscoverHasMore: has_more,
+          isLoadingGenreDiscover: false,
+          genreDiscoverError: null
+        });
+      }
     } catch (error) {
       const totalTime = performance.now() - startTime;
       console.error(`❌ Error loading next genre discover batch after ${totalTime.toFixed(2)}ms:`, error);
