@@ -39,7 +39,9 @@ class SongService:
     
     def set_current_user(self, user_id: str):
         """Set the current user ID for authentication context"""
+        logger.info(f"Setting current user ID: {user_id}")
         self._current_user_id = user_id
+        logger.info(f"Current user ID set to: {self._current_user_id}")
     
     def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None) -> Dict[str, str]:
         """
@@ -568,7 +570,9 @@ class SongService:
                 
             # Get user_id from request context
             user_id = getattr(self, '_current_user_id', None)
+            logger.info(f"get_liked_songs - Current user_id: {user_id}")
             if not user_id:
+                logger.error("User ID not set in service context")
                 raise ValueError("User ID not set in service context")
             
             # Get liked song IDs

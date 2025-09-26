@@ -11,24 +11,28 @@ import { Song } from '@/shared/types/song';
 import { UnifiedGrid } from '../common/unified-tile';
 
 export function DiscoverSection() {
-  const { randomSongs, isLoadingRandom, randomError, loadRandomSongs, toggleLike } = useSongStore();
-  const { setCurrentSong, setQueue } = usePlayerStore();
+  const { randomSongs, isLoadingRandom, randomError, loadRandomSongs, isRefreshingRandom, toggleLike } = useSongStore();
+  const { setCurrentSong, setQueue, queue } = usePlayerStore();
   const router = useRouter();
   
   const [columns, setColumns] = useState(6);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  
+  // Use player store queue as single source of truth for display
+  const displaySongs = queue.length > 0 ? queue.slice(0, 6) : randomSongs.slice(0, 6);
 
   const computeColumns = () => {
     // Force 6 columns on desktop for consistent title lengths
     setColumns(6);
   };
 
-  // Load more songs than we display to ensure consistency
+  // Load exactly 6 songs to match what we display
   useEffect(() => {
     if (randomSongs.length === 0) {
-      loadRandomSongs(10); // Load 10, display 6
+      loadRandomSongs(6); // Load exactly 6 songs
     }
   }, []);
+
 
   // Recalculate columns on resize
   useEffect(() => {
@@ -39,12 +43,12 @@ export function DiscoverSection() {
   }, []);
 
   const handleNext = () => {
-    // Refresh the visible 6 with a new random set
-    loadRandomSongs(10); // Load 10, display 6
+    // Load new random songs
+    loadRandomSongs(6); // Load exactly 6 songs
   };
 
   const handlePlay = (song: any, index: number) => {
-    setQueue(randomSongs.slice(0, 6), index);
+    setQueue(displaySongs, index);
     setCurrentSong(song);
   };
 
@@ -57,7 +61,7 @@ export function DiscoverSection() {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -91,25 +95,38 @@ export function DiscoverSection() {
         </div>
       )}
 
+
       {/* Songs Grid with Arrow on Last Item */}
-      {!isLoadingRandom && randomSongs.length > 0 && (
+      {!isLoadingRandom && displaySongs.length > 0 && (
         <UnifiedGrid>
-          {randomSongs.slice(0, 6).map((song, index) => (
-            <div key={song.id} className="relative">
-              <SongCard
-                song={song}
-                compact
-                onPlay={(song) => handlePlay(song, index)}
-                onLike={handleLike}
-                className="hover:scale-105 transition-transform"
-              />
+          {displaySongs.map((song, index) => (
+            <div key={`${song.id}-${index}`} className="relative">
+              <div 
+                className={`transition-opacity duration-500 ease-in-out ${
+                  isRefreshingRandom 
+                    ? 'opacity-40' 
+                    : 'opacity-100'
+                }`}
+              >
+                <SongCard
+                  song={song}
+                  compact
+                  onPlay={(song) => handlePlay(song, index)}
+                  onLike={handleLike}
+                  className="hover:scale-105 transition-transform"
+                />
+              </div>
               {/* Arrow on the last (rightmost) song */}
               {index === 5 && (
                 <button
                   onClick={handleNext}
-                  disabled={isLoadingRandom}
-                  className="absolute -right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-black/80 hover:bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors z-10"
-                  title="Load more songs"
+                  disabled={isRefreshingRandom}
+                  className={`absolute -right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 z-10 ${
+                    isRefreshingRandom 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : 'bg-black/80 hover:bg-black text-white'
+                  }`}
+                  title={isRefreshingRandom ? "Loading new songs..." : "Load more songs"}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>

@@ -331,9 +331,31 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (repeatMode === 'all') {
         nextIndex = 0;
       } else {
-        // Auto-load more songs when reaching the end
-        if (onEndOfQueue) {
-          onEndOfQueue();
+        // Special behavior for home page: when reaching 6th song, load new random songs
+        if (queue.length === 6 && repeatMode === 'none') {
+          // Load exactly 6 new random songs and play the first one
+          SongsAPI.getRandom({ limit: 6 }).then((newSongs) => {
+            if (newSongs && newSongs.length > 0) {
+              const { setQueue, setCurrentSong } = get();
+              setQueue(newSongs, 0); // Set new queue with exactly 6 songs, start at index 0
+              setCurrentSong(newSongs[0]); // Set the first song from new random set (autoplay should start)
+            } else {
+              // Fallback to onEndOfQueue if no new songs
+              if (onEndOfQueue) {
+                onEndOfQueue();
+              }
+            }
+          }).catch((error) => {
+            // Fallback to onEndOfQueue if error
+            if (onEndOfQueue) {
+              onEndOfQueue();
+            }
+          });
+        } else {
+          // Auto-load more songs when reaching the end
+          if (onEndOfQueue) {
+            onEndOfQueue();
+          }
         }
         return; // End of queue
       }

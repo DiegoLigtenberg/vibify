@@ -16,6 +16,7 @@ interface SongState {
   randomSongs: Song[];
   isLoadingRandom: boolean;
   randomError: string | null;
+  isRefreshingRandom: boolean;
   
   // Popular songs
   popularSongs: Song[];
@@ -56,6 +57,7 @@ interface SongState {
   clearSearch: () => void;
   
   loadRandomSongs: (limit?: number) => Promise<void>;
+  refreshRandomSongs: (limit?: number) => Promise<void>;
   loadPopularSongs: (limit?: number) => Promise<void>;
   
          // Discover actions
@@ -92,6 +94,7 @@ export const useSongStore = create<SongState>((set, get) => ({
   randomSongs: [],
   isLoadingRandom: false,
   randomError: null,
+  isRefreshingRandom: false,
   popularSongs: [],
   isLoadingPopular: false,
   popularError: null,
@@ -185,6 +188,9 @@ export const useSongStore = create<SongState>((set, get) => ({
       // Ensure songs is always an array
       const songsArray = Array.isArray(songs) ? songs : [];
       console.log('🎵 SongStore: Loaded songs:', songsArray.length, songsArray);
+      
+      // Only update randomSongs when new songs are ready
+      // This maintains visual continuity - existing songs stay visible during loading
       set({
         randomSongs: songsArray,
         isLoadingRandom: false
@@ -194,6 +200,31 @@ export const useSongStore = create<SongState>((set, get) => ({
       set({
         randomError: error instanceof Error ? error.message : 'Load random songs failed',
         isLoadingRandom: false
+      });
+    }
+  },
+
+  refreshRandomSongs: async (limit = 20) => {
+    console.log('🎵 SongStore: Refreshing random songs, limit:', limit);
+    set({ isRefreshingRandom: true, randomError: null });
+    
+    try {
+      const songs = await SongsAPI.getRandom({ limit });
+      // Ensure songs is always an array
+      const songsArray = Array.isArray(songs) ? songs : [];
+      console.log('🎵 SongStore: Refreshed songs:', songsArray.length, songsArray);
+      
+      // Only update randomSongs when new songs are ready
+      // This maintains visual continuity - existing songs stay visible during loading
+      set({
+        randomSongs: songsArray,
+        isRefreshingRandom: false
+      });
+    } catch (error) {
+      console.error('🎵 SongStore: Error refreshing random songs:', error);
+      set({
+        randomError: error instanceof Error ? error.message : 'Refresh random songs failed',
+        isRefreshingRandom: false
       });
     }
   },

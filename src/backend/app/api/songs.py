@@ -233,11 +233,18 @@ async def get_liked_songs(request: Request):
         
         song_service = SongService()
         song_service.set_current_user(user_id)
+        
+        # Verify the user ID was set correctly
+        if not hasattr(song_service, '_current_user_id') or song_service._current_user_id != user_id:
+            logger.error(f"Failed to set user ID in service context. Expected: {user_id}, Got: {getattr(song_service, '_current_user_id', None)}")
+            raise HTTPException(status_code=500, detail="Failed to set user context")
+        
         songs = song_service.get_liked_songs()
         return songs
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error fetching liked songs: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching liked songs: {str(e)}")
 
 @router.get("/{song_id}/urls")
@@ -289,11 +296,18 @@ async def like_song(song_id: str, request: Request):
         
         song_service = SongService()
         song_service.set_current_user(user_id)
+        
+        # Verify the user ID was set correctly
+        if not hasattr(song_service, '_current_user_id') or song_service._current_user_id != user_id:
+            logger.error(f"Failed to set user ID in service context for like. Expected: {user_id}, Got: {getattr(song_service, '_current_user_id', None)}")
+            raise HTTPException(status_code=500, detail="Failed to set user context")
+        
         result = song_service.like_song(song_id)
         return {"success": True, "liked": result}
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error liking song: {e}")
         raise HTTPException(status_code=500, detail=f"Error liking song: {str(e)}")
 
 @router.delete("/{song_id}/like")
@@ -308,11 +322,18 @@ async def unlike_song(song_id: str, request: Request):
         
         song_service = SongService()
         song_service.set_current_user(user_id)
+        
+        # Verify the user ID was set correctly
+        if not hasattr(song_service, '_current_user_id') or song_service._current_user_id != user_id:
+            logger.error(f"Failed to set user ID in service context for unlike. Expected: {user_id}, Got: {getattr(song_service, '_current_user_id', None)}")
+            raise HTTPException(status_code=500, detail="Failed to set user context")
+        
         result = song_service.unlike_song(song_id)
         return {"success": True, "unliked": result}
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error unliking song: {e}")
         raise HTTPException(status_code=500, detail=f"Error unliking song: {str(e)}")
 
 @router.get("/{song_id}/like-status")

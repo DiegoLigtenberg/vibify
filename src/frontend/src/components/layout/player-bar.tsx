@@ -40,7 +40,8 @@ export function PlayerBar() {
     beginSeek,
     endSeek,
     setRepeatMode,
-    toggleShuffle
+    toggleShuffle,
+    setCurrentTime
   } = usePlayerStore();
 
   const { toggleLike, isLiked } = useSongStore();
@@ -58,13 +59,19 @@ export function PlayerBar() {
   }
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only update the visual position, don't seek yet
     const newTime = parseFloat(e.target.value);
-    seek(newTime);
+    setCurrentTime(newTime);
   };
 
   const handleSeekMouseDown = () => beginSeek();
 
   const handleSeekMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    const newTime = parseFloat((e.target as HTMLInputElement).value);
+    endSeek(newTime);
+  };
+
+  const handleSeekTouchEnd = (e: React.TouchEvent<HTMLInputElement>) => {
     const newTime = parseFloat((e.target as HTMLInputElement).value);
     endSeek(newTime);
   };
@@ -196,7 +203,15 @@ export function PlayerBar() {
             }
           >
             {repeatMode === 'one' ? (
-              <Repeat className="h-4 w-4" style={{ transform: 'scaleX(-1)' }} />
+              <div className="relative">
+                <Repeat className="h-4 w-4" style={{ transform: 'scaleX(-1)' }} />
+                <span className="absolute -top-1 -right-1 text-xs font-bold">1</span>
+              </div>
+            ) : repeatMode === 'all' ? (
+              <div className="relative">
+                <Repeat className="h-4 w-4" />
+                <div className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-current rounded-full"></div>
+              </div>
             ) : (
               <Repeat className="h-4 w-4" />
             )}
@@ -216,6 +231,7 @@ export function PlayerBar() {
             onChange={handleSeek}
             onMouseDown={handleSeekMouseDown}
             onMouseUp={handleSeekMouseUp}
+            onTouchEnd={handleSeekTouchEnd}
             className="flex-1 h-1 bg-spotify-gray rounded-lg appearance-none cursor-pointer slider"
           />
           <span className="text-spotify-muted text-xs w-10">

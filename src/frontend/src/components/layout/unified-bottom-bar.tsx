@@ -43,7 +43,8 @@ export function UnifiedBottomBar() {
     beginSeek,
     endSeek,
     setRepeatMode,
-    toggleShuffle
+    toggleShuffle,
+    setCurrentTime
   } = usePlayerStore();
   
   const { toggleLike, isLiked, isLiking } = useSongStore();
@@ -84,13 +85,19 @@ export function UnifiedBottomBar() {
   }, [togglePlay, next, previous]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only update the visual position, don't seek yet
     const newTime = parseFloat(e.target.value);
-    seek(newTime);
+    setCurrentTime(newTime);
   };
 
   const handleSeekMouseDown = () => beginSeek();
 
   const handleSeekMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    const newTime = parseFloat((e.target as HTMLInputElement).value);
+    endSeek(newTime);
+  };
+
+  const handleSeekTouchEnd = (e: React.TouchEvent<HTMLInputElement>) => {
     const newTime = parseFloat((e.target as HTMLInputElement).value);
     endSeek(newTime);
   };
@@ -244,11 +251,18 @@ export function UnifiedBottomBar() {
                     repeatMode !== 'none' && 'text-spotify-green'
                   )}
                 >
-                  <Repeat className="h-4 w-4" />
-                  {repeatMode === 'one' && (
-                    <span className="absolute -top-1 -right-1 text-xs bg-spotify-green text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                      1
-                    </span>
+                  {repeatMode === 'one' ? (
+                    <div className="relative">
+                      <Repeat className="h-4 w-4" style={{ transform: 'scaleX(-1)' }} />
+                      <span className="absolute -top-1 -right-1 text-xs font-bold">1</span>
+                    </div>
+                  ) : repeatMode === 'all' ? (
+                    <div className="relative">
+                      <Repeat className="h-4 w-4" />
+                      <div className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-current rounded-full"></div>
+                    </div>
+                  ) : (
+                    <Repeat className="h-4 w-4" />
                   )}
                 </Button>
               </div>
@@ -266,6 +280,7 @@ export function UnifiedBottomBar() {
                   onChange={handleSeek}
                   onMouseDown={handleSeekMouseDown}
                   onMouseUp={handleSeekMouseUp}
+                  onTouchEnd={handleSeekTouchEnd}
                   className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
                 />
                 <span className="text-xs text-gray-400 w-10">
