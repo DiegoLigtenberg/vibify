@@ -1,46 +1,44 @@
 #!/usr/bin/env python3
 """
-Production startup script for Railway deployment
+Vibify Backend Server
+Unified startup script for both local development and production deployment.
 """
+
 import os
 import sys
+import uvicorn
 from pathlib import Path
 
-# Add the backend directory to Python path
-backend_dir = Path(__file__).parent
-sys.path.insert(0, str(backend_dir))
-
-# Also add the app directory to Python path
-app_dir = backend_dir / "app"
-sys.path.insert(0, str(app_dir))
-
-print(f"Python path: {sys.path}")
-print(f"Current working directory: {os.getcwd()}")
-print(f"Backend directory: {backend_dir}")
-print(f"App directory: {app_dir}")
+def main():
+    """Start the Vibify backend server."""
+    
+    # Add the backend directory to Python path
+    backend_dir = Path(__file__).parent
+    sys.path.insert(0, str(backend_dir))
+    
+    # Import the app
+    from app.main import app
+    
+    # Configuration based on environment
+    is_production = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+    port = int(os.environ.get("PORT", 8000))
+    host = "0.0.0.0" if is_production else "127.0.0.1"
+    
+    # Performance optimizations
+    # For I/O-bound apps: (CPU cores * 2) is optimal
+    # Local: i7-12700 has 24 logical processors, so 48 workers max, but we test on prod
+    # Railway: typically 1-2 cores, but we can go for 4-8 workers
+    workers = 4 if is_production else 4
+    
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        log_level="info",
+        http="httptools",
+        workers=workers,
+        access_log=not is_production
+    )
 
 if __name__ == "__main__":
-    try:
-        import uvicorn
-        print("✅ Uvicorn imported successfully")
-        
-        from app.main import app
-        print("✅ App imported successfully")
-        
-        print(f"✅ App routes: {[route.path for route in app.routes if hasattr(route, 'path')]}")
-    except Exception as e:
-        print(f"❌ Import error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    
-    # Get port from Railway environment variable
-    port = int(os.environ.get("PORT", 8000))
-    
-    # Run the server
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        log_level="info"
-    )
+    main()

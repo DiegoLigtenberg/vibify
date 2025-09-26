@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # Now import everything else
-from .api import songs, upload
+from .api import songs, upload, auth
 from .config.logging_global import get_logger
 from .config.simple_config import Config
 from .utils.b2_client import B2Client
@@ -50,6 +50,7 @@ async def add_process_time_header(request: Request, call_next):
 # Include routers
 app.include_router(songs.router)
 app.include_router(upload.router)
+app.include_router(auth.router)
 
 @app.on_event("startup")
 async def startup_event():

@@ -21,6 +21,8 @@ class Config:
     # External Service Credentials (from .env)
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+    SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     
     # Backblaze B2 Credentials (from .env)
     B2_KEY_ID = os.getenv("B2_APPLICATION_KEY_ID", "")

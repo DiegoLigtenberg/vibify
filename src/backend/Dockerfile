@@ -27,4 +27,4 @@ ENV PYTHONPATH=/app
 EXPOSE ${PORT:-8000}
 
 # Start the backend
-CMD ["uv", "run", "python", "start_production.py"]
+CMD ["uv", "run", "python", "start_production"]

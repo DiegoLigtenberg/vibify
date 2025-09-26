@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { User, Search, Heart, Music, Menu, X } from 'lucide-react';
+import { User, Search, Heart, Music, Menu, X, LogOut, Trash2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SongsAPI } from '../../lib/api';
 import { Song } from '@/shared/types/song';
 import { usePlayerStore } from '../../store/player-store';
 import { useSongStore } from '../../store/song-store';
+import { useAuthStore } from '../../store/auth-store';
 import { cn } from '../../lib/utils';
 import { SongImage } from '../ui/song-image';
 
@@ -20,11 +22,15 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   const setCurrentSong = usePlayerStore(s => s.setCurrentSong);
   const addToQueue = usePlayerStore(s => s.addToQueue);
   const { toggleLike, isLiked } = useSongStore();
+  const { user, logout, deleteAccount, isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
   // Debounce search input
   const debouncedSearch = useCallback(
@@ -61,11 +67,14 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
     };
   }, [searchQuery, debouncedSearch]);
 
-  // Close search results when clicking outside
+  // Close search results and user dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
       }
     };
 
@@ -79,6 +88,24 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
     setCurrentSong(song);
     addToQueue(song);
     setShowSearchResults(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setShowUserDropdown(false);
+    // AuthWrapper will show the auth overlay automatically
+  };
+
+  const handleDeleteAccount = async () => {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      const result = await deleteAccount();
+      if (result.success) {
+        setShowUserDropdown(false);
+        // AuthWrapper will show the auth overlay automatically
+      } else {
+        alert('Failed to delete account: ' + result.error);
+      }
+    }
   };
 
   const handleLike = async (song: Song, e: React.MouseEvent) => {
@@ -183,14 +210,50 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
       
         
       {/* Right side - User Info - Always visible */}
-      <div className="flex items-center space-x-3 bg-black/50 rounded-full px-3 md:px-4 py-2 hover:bg-black/70 transition-colors cursor-pointer">
-        <div className="w-8 h-8 bg-spotify-green rounded-full flex items-center justify-center">
-          <User className="h-4 w-4 text-white" />
+      <div ref={userDropdownRef} className="relative">
+        <div 
+          className="flex items-center space-x-3 bg-black/50 rounded-full px-3 md:px-4 py-2 hover:bg-black/70 transition-colors cursor-pointer"
+          onClick={() => isAuthenticated && setShowUserDropdown(!showUserDropdown)}
+        >
+          <div className="w-8 h-8 bg-spotify-green rounded-full flex items-center justify-center">
+            <User className="h-4 w-4 text-white" />
+          </div>
+          <div className="hidden md:flex flex-1 min-w-0 flex-col">
+            <p className="text-white text-sm font-semibold truncate">
+              {isAuthenticated && user ? user.username : 'Guest'}
+            </p>
+            <p className="text-gray-300 text-xs truncate">Free Plan</p>
+          </div>
+          {isAuthenticated && (
+            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
+          )}
         </div>
-        <div className="hidden md:flex flex-1 min-w-0">
-          <p className="text-white text-sm font-semibold truncate">User</p>
-          <p className="text-gray-300 text-xs truncate">Free Plan</p>
-        </div>
+
+        {/* User Dropdown Menu */}
+        {isAuthenticated && showUserDropdown && (
+          <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+            <div className="px-4 py-2 border-b border-gray-700">
+              <p className="text-white text-sm font-medium">{user?.username}</p>
+              <p className="text-gray-400 text-xs">Free Plan</p>
+            </div>
+            
+            <button
+              onClick={handleLogout}
+              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-3"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+            
+            <button
+              onClick={handleDeleteAccount}
+              className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-3"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

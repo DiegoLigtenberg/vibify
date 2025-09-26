@@ -34,7 +34,12 @@ class SongService:
             logger.error(f"Error initializing Supabase connection: {e}")
             self.supabase = None
         
+        self._current_user_id = None
         self._initialized = True
+    
+    def set_current_user(self, user_id: str):
+        """Set the current user ID for authentication context"""
+        self._current_user_id = user_id
     
     def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None) -> Dict[str, str]:
         """
@@ -414,7 +419,8 @@ class SongService:
         try:
             # For now, we'll use a simple approach with a user_likes table
             # In a real app, you'd have user authentication
-            user_id = "default_user"  # TODO: Get from authentication
+            # Get user_id from request context or use default
+            user_id = getattr(self, '_current_user_id', "default_user")
             
             # Check if already liked
             existing = self.supabase.table("user_likes").select("*").eq("user_id", user_id).eq("song_id", song_id).execute()
@@ -452,7 +458,8 @@ class SongService:
             False (unliked)
         """
         try:
-            user_id = "default_user"  # TODO: Get from authentication
+            # Get user_id from request context or use default
+            user_id = getattr(self, '_current_user_id', "default_user")
             
             # Remove like
             self.supabase.table("user_likes").delete().eq("user_id", user_id).eq("song_id", song_id).execute()
@@ -478,7 +485,8 @@ class SongService:
             True if liked, False otherwise
         """
         try:
-            user_id = "default_user"  # TODO: Get from authentication
+            # Get user_id from request context or use default
+            user_id = getattr(self, '_current_user_id', "default_user")
             
             result = self.supabase.table("user_likes").select("*").eq("user_id", user_id).eq("song_id", song_id).execute()
             return len(result.data) > 0
@@ -550,7 +558,8 @@ class SongService:
                 logger.error("Error: Supabase connection not available")
                 return []
                 
-            user_id = "default_user"  # TODO: Get from authentication
+            # Get user_id from request context or use default
+            user_id = getattr(self, '_current_user_id', "default_user")
             
             # Get liked song IDs
             likes_result = self.supabase.table("user_likes").select("song_id").eq("user_id", user_id).execute()

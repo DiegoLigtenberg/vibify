@@ -6,7 +6,7 @@ This document outlines the critical performance optimizations implemented to ach
 
 ```bash
 # Use the optimized startup script
-python start_optimized.py
+python start_production.py
 
 # Or manually with optimized settings
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --http httptools --no-access-log --workers 2
@@ -75,7 +75,7 @@ This will test multiple endpoints and show:
 - `app/utils/b2_client.py`: Singleton + caching + connection pooling
 - `app/services/song_service.py`: Singleton pattern
 - `app/database/connection.py`: SupabaseClient singleton
-- `start_optimized.py`: Optimized server startup script
+- `start_production.py`: Unified server startup script for local and production
 
 **Frontend:**
 - `src/lib/config.ts`: Use 127.0.0.1 instead of localhost
