@@ -65,12 +65,12 @@ export function SongCard({
       onClick={handlePlay}
     >
       {/* Thumbnail */}
-      <div className="relative mb-3">
-        <div className={cn('w-full h-48 bg-spotify-gray rounded-md overflow-hidden')}>
+      <div className="relative mb-2">
+        <div className={cn('w-full h-56 bg-spotify-gray rounded-md overflow-hidden')}>
           <SongImage
             src={song.thumbnail_url}
             alt={song.title}
-            className="w-full h-48 object-cover"
+            className="w-full h-56 object-cover"
             fallbackIcon={<span className="text-spotify-muted text-2xl">♪</span>}
           />
         </div>
@@ -86,23 +86,23 @@ export function SongCard({
 
       {/* Song Info */}
       <div className="space-y-0.5">
-        <div className={cn('text-left text-white font-medium', compact ? 'text-[10px]' : 'text-sm')} style={{ wordBreak: 'break-word', lineHeight: '1.1' }}>
+        <div className={cn('text-left text-white font-medium', compact ? 'text-[10px]' : 'text-sm')} style={{ wordBreak: 'break-word', lineHeight: '1.3' }}>
           {song.title}
         </div>
         
         {showArtist && (
-          <p className={cn('text-spotify-muted truncate', compact ? 'text-[11px]' : 'text-xs')}>
+          <p className={cn('text-spotify-muted truncate', compact ? 'text-[11px]' : 'text-xs')} style={{ lineHeight: '1.2' }}>
             {song.artist}
           </p>
         )}
         
         {showAlbum && (
-          <p className={cn('text-spotify-muted truncate', compact ? 'text-[11px]' : 'text-xs')}>
+          <p className={cn('text-spotify-muted truncate', compact ? 'text-[11px]' : 'text-xs')} style={{ lineHeight: '1.2' }}>
             {song.album}
           </p>
         )}
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-1">
           <span className={cn('text-spotify-muted', compact ? 'text-[11px]' : 'text-xs')}>
             {formatDuration(song.duration)}
           </span>

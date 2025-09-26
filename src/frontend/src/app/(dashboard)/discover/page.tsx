@@ -8,6 +8,7 @@ import { useSongStore } from '../../../store/song-store';
 import { UnifiedGrid } from '../../../components/common/unified-tile';
 import { SongCard } from '../../../components/song/song-card';
 import { usePlayerStore } from '../../../store/player-store';
+import { calculateBatchSizing } from '../../../lib/batch-sizing';
 
 export default function DiscoverPage() {
   const { discoverItems, discoverHasMore, isLoadingDiscover, initDiscover, loadNextDiscover, resetDiscover } = useSongStore();
@@ -16,78 +17,28 @@ export default function DiscoverPage() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   
   // State for client-side calculated values to prevent hydration mismatch
-  const [maxSongs, setMaxSongs] = useState(180); // Default fallback
-  const [batchSize, setBatchSize] = useState(48); // Default fallback
+  const [batchConfig, setBatchConfig] = useState(() => ({
+    batchSize: 48,
+    maxSongs: 144,
+    cardsPerRow: 6,
+    cardsPerScreen: 18,
+    rootMargin: '1200px'
+  }));
+  
+  // Track if we're currently processing a load to prevent spam
+  const [isProcessingLoad, setIsProcessingLoad] = useState(false);
 
-  // Calculate optimal batch size based on visible rows
-  const calculateBatchSize = () => {
-    // Default for server-side rendering
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return 48; // Default fallback
-    }
-    
-    // Get the grid container to calculate visible rows
-    const container = document.querySelector('.grid');
-    if (!container) return 48; // fallback
-    
-    const containerWidth = container.clientWidth;
-    const cardWidth = 200; // approximate card width + gap
-    const cardsPerRow = Math.floor(containerWidth / cardWidth);
-    const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
-    const cardsPerScreen = cardsPerRow * visibleRows;
-    
-    // Load 3-4 screens worth to ensure smooth scrolling (increased from 2-3)
-    return Math.max(cardsPerScreen * 3, 48);
-  };
-
-  // Calculate dynamic memory limit based on screen size
-  const calculateMaxSongs = () => {
-    // Default values for server-side rendering
-    if (typeof window === 'undefined') {
-      return 180; // Default fallback
-    }
-    
-    const containerWidth = window.innerWidth;
-    const cardWidth = 200; // approximate card width + gap
-    const cardsPerRow = Math.floor(containerWidth / cardWidth);
-    const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
-    const cardsPerScreen = cardsPerRow * visibleRows;
-    
-    // Keep 6-8 screens worth of songs for smooth scrolling
-    const baseMax = Math.max(cardsPerScreen * 6, 50); // minimum 50 songs
-    
-    // Ensure max is a multiple of cards per row to prevent position shifting
-    const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
-    return rowsToKeep * cardsPerRow;
-  };
+  // Get current values from config
+  const { batchSize, maxSongs, cardsPerRow, cardsPerScreen, rootMargin } = batchConfig;
 
   // Calculate client-side values to prevent hydration mismatch
   useEffect(() => {
     const calculateValues = () => {
       if (typeof window === 'undefined') return;
       
-      // Calculate batch size
-      const container = document.querySelector('.grid');
-      if (container) {
-        const containerWidth = container.clientWidth;
-        const cardWidth = 200;
-        const cardsPerRow = Math.floor(containerWidth / cardWidth);
-        const visibleRows = Math.ceil(window.innerHeight / 300);
-        const cardsPerScreen = cardsPerRow * visibleRows;
-        const newBatchSize = Math.max(cardsPerScreen * 2, 24);
-        setBatchSize(newBatchSize);
-      }
-      
-      // Calculate max songs
-      const containerWidth = window.innerWidth;
-      const cardWidth = 200;
-      const cardsPerRow = Math.floor(containerWidth / cardWidth);
-      const visibleRows = Math.ceil(window.innerHeight / 300);
-      const cardsPerScreen = cardsPerRow * visibleRows;
-      const baseMax = Math.max(cardsPerScreen * 3, 30);
-      const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
-      const newMaxSongs = rowsToKeep * cardsPerRow;
-      setMaxSongs(newMaxSongs);
+      // Use centralized batch sizing calculation
+      const newConfig = calculateBatchSizing();
+      setBatchConfig(newConfig);
     };
     
     calculateValues();
@@ -122,14 +73,31 @@ export default function DiscoverPage() {
     const el = sentinelRef.current;
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
-      if (first.isIntersecting && !isLoadingDiscover && discoverHasMore) {
-        console.log(`🔄 Intersection detected - loading next batch of ${batchSize} songs`);
-        loadNextDiscover(batchSize);
+      console.log(`🔍 Intersection check: isIntersecting=${first.isIntersecting}, isLoading=${isLoadingDiscover}, hasMore=${discoverHasMore}, rootMargin=${rootMargin}`);
+      
+      // Only trigger if:
+      // 1. Element is intersecting
+      // 2. Not currently loading
+      // 3. Has more content
+      // 4. Not already processing a load
+      // 5. Intersection ratio is significant (not just barely touching)
+      if (first.isIntersecting && 
+          !isLoadingDiscover && 
+          !isProcessingLoad &&
+          discoverHasMore && 
+          first.intersectionRatio > 0.1) {
+        console.log(`🔄 Intersection detected - loading next batch of ${batchSize} songs (ratio: ${first.intersectionRatio})`);
+        setIsProcessingLoad(true);
+        loadNextDiscover(batchSize).finally(() => {
+          setIsProcessingLoad(false);
+        });
       }
-    }, { root: rootEl as Element | null, rootMargin: '1600px', threshold: 0 });
+    }, { root: rootEl as Element | null, rootMargin, threshold: [0, 0.1, 0.5, 1.0] });
     observer.observe(el);
     return () => observer.unobserve(el);
-  }, [isLoadingDiscover, discoverHasMore, discoverItems.length, loadNextDiscover, batchSize]);
+  }, [isLoadingDiscover, discoverHasMore, discoverItems.length, loadNextDiscover, batchSize, rootMargin, isProcessingLoad]);
+
+  // Scroll-based fallback disabled for testing
 
   // Preload next batch when we're getting close to the end (disabled for now)
   // useEffect(() => {
@@ -164,6 +132,10 @@ export default function DiscoverPage() {
             )}
             <div className="text-xs text-gray-500 mt-1">
               Loading {batchSize} songs per batch • Max {maxSongs} songs in memory
+              <br />
+              Grid: {cardsPerRow}×{Math.ceil(cardsPerScreen / cardsPerRow)} cards per screen ({cardsPerScreen} total)
+              <br />
+              Trigger: {rootMargin} root margin
               {isLoadingDiscover && (
                 <span className="ml-2 text-blue-400">🔄 Loading more songs...</span>
               )}

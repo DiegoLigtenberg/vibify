@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SongsAPI } from '../lib/api';
 import type { Song, SongSearchParams, SongSearchResult } from '@/shared/types/song';
+import { getResponsiveBatchSize, getResponsiveMaxSongs } from '../lib/batch-sizing';
 
 interface SongState {
   // Search state
@@ -229,7 +230,7 @@ export const useSongStore = create<SongState>((set, get) => ({
   },
 
          // Discover feed: initialize with a seed (optional)
-         initDiscover: async (seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 48) => {
+         initDiscover: async (seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = getResponsiveBatchSize()) => {
            const { discoverItems, isLoadingDiscover, discoverSeed, discoverHasMore } = get();
            
            // Force reset if hasMore is false (corrupted state)
@@ -248,7 +249,7 @@ export const useSongStore = create<SongState>((set, get) => ({
          },
 
   // Load the next page for discover
-  loadNextDiscover: async (limit = 48) => {
+  loadNextDiscover: async (limit = getResponsiveBatchSize()) => {
     const { isLoadingDiscover, discoverHasMore, discoverCursor, discoverSeed, discoverItems } = get();
     
     if (isLoadingDiscover || !discoverHasMore) {
@@ -272,23 +273,8 @@ export const useSongStore = create<SongState>((set, get) => ({
       // Track processing time
       const processStartTime = performance.now();
       
-      // Dynamic memory management based on screen size
-      const calculateMaxSongs = () => {
-        const containerWidth = window.innerWidth;
-        const cardWidth = 200; // approximate card width + gap
-        const cardsPerRow = Math.floor(containerWidth / cardWidth);
-        const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
-        const cardsPerScreen = cardsPerRow * visibleRows;
-        
-        // Keep 3-4 screens worth of songs for smooth scrolling (reduced from 6-8)
-        const baseMax = Math.max(cardsPerScreen * 3, 30); // minimum 30 songs
-        
-        // Ensure max is a multiple of cards per row to prevent position shifting
-        const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
-        return rowsToKeep * cardsPerRow;
-      };
-      
-      const MAX_SONGS = calculateMaxSongs();
+      // Use responsive memory management
+      const MAX_SONGS = getResponsiveMaxSongs();
       
       // Deduplicate songs by ID to prevent duplicate React keys
       const existingIds = new Set(discoverItems.map(song => song.id));
@@ -302,8 +288,9 @@ export const useSongStore = create<SongState>((set, get) => ({
       console.log(`📊 Memory management: ${combined.length} total songs, MAX_SONGS: ${MAX_SONGS}`);
       
       // Remove old songs from the beginning to keep memory usage low
-      // Keep only the most recent MAX_SONGS songs
-      const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
+      // Only trim if we're significantly over the limit to prevent visual gaps
+      const shouldTrim = combined.length > MAX_SONGS * 1.5; // Only trim when 50% over limit
+      const trimmed = shouldTrim ? combined.slice(-MAX_SONGS) : combined;
       
       // Final deduplication to ensure no duplicates in trimmed array
       const finalSongs = [];
@@ -319,7 +306,9 @@ export const useSongStore = create<SongState>((set, get) => ({
       const processDuration = processEndTime - processStartTime;
       
       if (trimmed.length < combined.length) {
-        console.log(`🗑️ Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
+        console.log(`🗑️ Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs (trimmed because ${combined.length} > ${MAX_SONGS * 1.5})`);
+      } else if (combined.length > MAX_SONGS) {
+        console.log(`📊 Memory usage: ${combined.length}/${MAX_SONGS} songs (${Math.round((combined.length / MAX_SONGS) * 100)}% of limit) - not trimming yet`);
       }
       
       if (finalSongs.length < trimmed.length) {
@@ -361,7 +350,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     });
   },
 
-  initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 48) => {
+  initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = getResponsiveBatchSize()) => {
     const { genreDiscoverItems, isLoadingGenreDiscover, genreDiscoverSeed, genreDiscoverHasMore } = get();
     
     // Force reset if hasMore is false (corrupted state)
@@ -386,7 +375,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     await get().loadNextGenreDiscover(initialBatchSize);
   },
 
-  loadNextGenreDiscover: async (limit = 48) => {
+  loadNextGenreDiscover: async (limit = getResponsiveBatchSize()) => {
     const { isLoadingGenreDiscover, genreDiscoverHasMore, genreDiscoverCursor, genreDiscoverSeed, genreDiscoverItems, selectedGenres } = get();
     
     if (isLoadingGenreDiscover || !genreDiscoverHasMore || selectedGenres.length === 0) {
@@ -437,7 +426,10 @@ export const useSongStore = create<SongState>((set, get) => ({
       console.log(`🔍 Genre deduplication: ${added.length} new songs, ${uniqueAdded.length} unique after dedup`);
       
       const combined = [...genreDiscoverItems, ...uniqueAdded];
-      const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
+      
+      // Only trim if we're significantly over the limit to prevent visual gaps
+      const shouldTrim = combined.length > MAX_SONGS * 1.5; // Only trim when 50% over limit
+      const trimmed = shouldTrim ? combined.slice(-MAX_SONGS) : combined;
       
       // Final deduplication to ensure no duplicates in trimmed array
       const finalSongs = [];
@@ -453,7 +445,9 @@ export const useSongStore = create<SongState>((set, get) => ({
       const processDuration = processEndTime - processStartTime;
       
       if (trimmed.length < combined.length) {
-        console.log(`🗑️ Genre: Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
+        console.log(`🗑️ Genre: Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs (trimmed because ${combined.length} > ${MAX_SONGS * 1.5})`);
+      } else if (combined.length > MAX_SONGS) {
+        console.log(`📊 Genre memory usage: ${combined.length}/${MAX_SONGS} songs (${Math.round((combined.length / MAX_SONGS) * 100)}% of limit) - not trimming yet`);
       }
       
       if (finalSongs.length < trimmed.length) {
