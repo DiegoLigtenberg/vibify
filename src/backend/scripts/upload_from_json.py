@@ -14,20 +14,18 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 from tqdm import tqdm
 
-# Load environment variables
-# load_dotenv()
-
-# Import centralized logging
+# Import centralized logging and config
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from app.config.logging_global import get_logger
+from app.config.simple_config import Config
 
 logger = get_logger(__name__)
 
 # Supabase configuration
 supabase: Client = create_client(
-    os.getenv("SUPABASE_URL", ""),
-    os.getenv("SUPABASE_KEY", "")
+    Config.SUPABASE_URL,
+    Config.SUPABASE_KEY
 )
 
 def convert_release_date(date_str: str) -> Optional[str]:

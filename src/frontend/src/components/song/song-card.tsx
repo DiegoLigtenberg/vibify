@@ -5,6 +5,7 @@ import { Play, Heart } from 'lucide-react';
 import { usePlayerStore } from '../../store/player-store';
 import { useSongStore } from '../../store/song-store';
 import { cn, formatDuration } from '../../lib/utils';
+import { SongImage } from '../ui/song-image';
 import { Song } from '@/shared/types/song';
 
 interface SongCardProps {
@@ -65,19 +66,13 @@ export function SongCard({
     >
       {/* Thumbnail */}
       <div className="relative mb-3">
-        <div className={cn('w-full bg-spotify-gray rounded-md overflow-hidden', compact ? 'aspect-square' : 'aspect-square')}>
-          {song.thumbnail_url ? (
-            <img
-              src={song.thumbnail_url}
-              alt={song.title}
-              className="w-full h-full object-cover"
-              onError={() => {}}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-spotify-muted text-2xl">♪</span>
-            </div>
-          )}
+        <div className={cn('w-full bg-spotify-gray rounded-md overflow-hidden')}>
+          <SongImage
+            src={song.thumbnail_url}
+            alt={song.title}
+            className="w-full h-48 object-cover"
+            fallbackIcon={<span className="text-spotify-muted text-2xl">♪</span>}
+          />
         </div>
         
         {/* Play Button */}

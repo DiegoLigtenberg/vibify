@@ -87,15 +87,15 @@ export default function AlbumPage() {
     <div className="space-y-6">
       {/* Album Header */}
       <div className="flex items-end space-x-6">
-        <div className="w-48 h-48 bg-spotify-gray rounded-md flex-shrink-0">
+        <div className="w-48 bg-spotify-gray rounded-md flex-shrink-0">
           {album.thumbnail_url ? (
             <img
               src={album.thumbnail_url}
               alt={album.name}
-              className="w-full h-full object-cover rounded-md"
+              className="w-full h-auto rounded-md"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-48 flex items-center justify-center">
               <span className="text-spotify-muted text-4xl">♪</span>
             </div>
           )}

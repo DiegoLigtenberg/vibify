@@ -35,15 +35,15 @@ export function AlbumCard({
     <div className={cn('song-card p-4', className)}>
       {/* Thumbnail */}
       <div className="relative mb-3">
-        <div className="w-full aspect-square bg-spotify-gray rounded-md overflow-hidden">
+        <div className="w-full bg-spotify-gray rounded-md overflow-hidden">
           {album.thumbnail_url ? (
             <img
               src={album.thumbnail_url}
               alt={album.name}
-              className="w-full h-full object-cover"
+              className="w-full h-48 object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-48 flex items-center justify-center">
               <span className="text-spotify-muted text-2xl">♪</span>
             </div>
           )}

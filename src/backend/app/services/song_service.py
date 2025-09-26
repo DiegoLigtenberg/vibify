@@ -8,6 +8,7 @@ from ..utils.b2_client import B2Client
 from ..database.connection import SupabaseClient
 from ..models.song import Song, SongResponse, SongSearchParams
 from ..config.logging_global import get_logger
+from ..config.simple_config import Config
 import os
 
 logger = get_logger(__name__)
@@ -24,7 +25,7 @@ class SongService:
     
     def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None) -> Dict[str, str]:
         """
-        Generate URLs for song audio and thumbnail
+        Generate URLs for song audio and thumbnail (DEPRECATED - use batch method instead)
         
         Args:
             song_id: Song ID (e.g., "0000000")
@@ -48,6 +49,77 @@ class SongService:
             "storage_url": storage_url,
             "thumbnail_url": thumbnail_url
         }
+    
+    def process_song_data(self, song_data: dict) -> Song:
+        """
+        Process a single song data dict into a Song object with optimized URL handling
+        
+        Args:
+            song_data: Raw song data from database
+            
+        Returns:
+            Song object with URLs
+        """
+        # Use existing URLs directly - they're already valid B2 URLs
+        # This is the key optimization: don't regenerate URLs unless absolutely necessary
+        storage_url = song_data.get('storage_url', '')
+        thumbnail_url = song_data.get('thumbnail_url', '')
+        
+        # Only regenerate URLs if they're completely missing
+        # The URLs in the database are already valid B2 URLs with auth tokens
+        if not storage_url:
+            audio_filename = f"{song_data['id']}.mp3"
+            storage_url = self.b2_client.get_audio_url(audio_filename)
+        
+        if not thumbnail_url:
+            thumbnail_filename = f"{song_data['id']}.png"
+            thumbnail_url = self.b2_client.get_thumbnail_url(thumbnail_filename)
+        
+        # Create Song object
+        return Song(
+            id=song_data['id'],
+            title=song_data['title'],
+            artist=song_data['artist'],
+            album=song_data['album'],
+            duration=song_data['duration'],
+            storage_url=storage_url,
+            thumbnail_url=thumbnail_url,
+            release_date=song_data.get('release_date'),
+            description=song_data.get('description'),
+            genres=song_data.get('tags', []),
+            view_count=song_data.get('view_count') or 0,
+            like_count=song_data.get('like_count') or 0,
+            streams=song_data.get('streams') or 0,
+            is_public=song_data.get('is_public', True),
+            uploaded_by=song_data.get('uploaded_by'),
+            created_at=song_data.get('created_at'),
+            updated_at=song_data.get('updated_at')
+        )
+    
+    def extract_filename_from_b2_url(self, b2_url: str, folder: str) -> str:
+        """
+        Extract filename from B2 URL
+        
+        Args:
+            b2_url: Full B2 URL like "https://f003.backblazeb2.com/file/bucket-vibify/audio/0010466.mp3"
+            folder: Folder name like "audio" or "thumbnails"
+        
+        Returns:
+            Filename like "0010466.mp3"
+        """
+        if not b2_url:
+            return ""
+        
+        # Extract filename from URL path
+        # URL format: https://f003.backblazeb2.com/file/bucket-vibify/audio/0010466.mp3
+        try:
+            parts = b2_url.split(f"/{folder}/")
+            if len(parts) > 1:
+                return parts[1]
+        except:
+            pass
+        
+        return ""
     
     def get_song_with_urls(self, song_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -128,31 +200,8 @@ class SongService:
             # Convert to Song objects and add URLs
             songs = []
             for song_data in response.data:
-                # Generate URLs
-                urls = self.generate_song_urls(
-                    song_id=song_data['id']
-                )
-                
-                # Create Song object
-                song = Song(
-                    id=song_data['id'],
-                    title=song_data['title'],
-                    artist=song_data['artist'],
-                    album=song_data['album'],
-                    duration=song_data['duration'],
-                    storage_url=urls['storage_url'],
-                    thumbnail_url=urls['thumbnail_url'],
-                    release_date=song_data.get('release_date'),
-                    description=song_data.get('description'),
-                    genres=song_data.get('tags', []),
-                    view_count=song_data.get('view_count', 0),
-                    like_count=song_data.get('like_count', 0),
-                    streams=song_data.get('streams', 0),
-                    is_public=song_data.get('is_public', True),
-                    uploaded_by=song_data.get('uploaded_by'),
-                    created_at=song_data.get('created_at'),
-                    updated_at=song_data.get('updated_at')
-                )
+                # Use optimized processing
+                song = self.process_song_data(song_data)
                 songs.append(song)
             
             return songs
@@ -185,45 +234,21 @@ class SongService:
             random_offset = random.randint(0, max_offset)
             
             # Get random songs
-            response = self.supabase.table('songs').select('*').eq('is_public', True).range(random_offset, random_offset + limit - 1).execute()
+            # Supabase range is exclusive on the end, so we need to adjust
+            end_offset = random_offset + limit
+            response = self.supabase.table('songs').select('*').eq('is_public', True).range(random_offset, end_offset).execute()
             
             if not response.data:
                 return []
             
-            # Convert to Song objects and add URLs
-            songs = []
-            for song_data in response.data:
-                # Generate URLs
-                urls = self.generate_song_urls(
-                    song_id=song_data['id']
-                )
-                
-                # Create Song object
-                song = Song(
-                    id=song_data['id'],
-                    title=song_data['title'],
-                    artist=song_data['artist'],
-                    album=song_data['album'],
-                    duration=song_data['duration'],
-                    storage_url=urls['storage_url'],
-                    thumbnail_url=urls['thumbnail_url'],
-                    release_date=song_data.get('release_date'),
-                    description=song_data.get('description'),
-                    genres=song_data.get('tags', []),
-                    view_count=song_data.get('view_count', 0),
-                    like_count=song_data.get('like_count', 0),
-                    streams=song_data.get('streams', 0),
-                    is_public=song_data.get('is_public', True),
-                    uploaded_by=song_data.get('uploaded_by'),
-                    created_at=song_data.get('created_at'),
-                    updated_at=song_data.get('updated_at')
-                )
-                songs.append(song)
+            # Convert to Song objects using optimized processing
+            songs = [self.process_song_data(song_data) for song_data in response.data]
             
             return songs
             
         except Exception as e:
             logger.error(f"Error fetching random songs from database: {e}")
+            logger.error(f"Full error details: {type(e).__name__}: {str(e)}")
             return []
     
     def get_popular_songs(self, limit: int = 10) -> List[Song]:
@@ -246,31 +271,8 @@ class SongService:
             # Convert to Song objects and add URLs
             songs = []
             for song_data in response.data:
-                # Generate URLs
-                urls = self.generate_song_urls(
-                    song_id=song_data['id']
-                )
-                
-                # Create Song object
-                song = Song(
-                    id=song_data['id'],
-                    title=song_data['title'],
-                    artist=song_data['artist'],
-                    album=song_data['album'],
-                    duration=song_data['duration'],
-                    storage_url=urls['storage_url'],
-                    thumbnail_url=urls['thumbnail_url'],
-                    release_date=song_data.get('release_date'),
-                    description=song_data.get('description'),
-                    genres=song_data.get('tags', []),
-                    view_count=song_data.get('view_count', 0),
-                    like_count=song_data.get('like_count', 0),
-                    streams=song_data.get('streams', 0),
-                    is_public=song_data.get('is_public', True),
-                    uploaded_by=song_data.get('uploaded_by'),
-                    created_at=song_data.get('created_at'),
-                    updated_at=song_data.get('updated_at')
-                )
+                # Use optimized processing
+                song = self.process_song_data(song_data)
                 songs.append(song)
             
             return songs
@@ -505,9 +507,9 @@ class SongService:
                     album=song_data['album'],
                     duration=song_data['duration'],
                     release_date=str(song_data['release_date']) if song_data['release_date'] else None,
-                    view_count=song_data.get('view_count', 0),
-                    like_count=song_data.get('like_count', 0),
-                    streams=song_data.get('streams', 0),
+                    view_count=song_data.get('view_count') or 0,
+                    like_count=song_data.get('like_count') or 0,
+                    streams=song_data.get('streams') or 0,
                     description=song_data.get('description'),
                     storage_url=urls['storage_url'],
                     thumbnail_url=urls['thumbnail_url'],

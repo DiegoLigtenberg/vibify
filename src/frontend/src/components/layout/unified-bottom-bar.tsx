@@ -18,6 +18,7 @@ import { usePlayerStore } from '../../store/player-store';
 import { useSongStore } from '../../store/song-store';
 import { Button } from '../ui/button';
 import { cn, formatDuration } from '../../lib/utils';
+import { SongImage } from '../ui/song-image';
 import SongDetailsPopup from '../song/song-details-popup';
 import { SongsAPI } from '../../lib/api';
 import type { Song } from '@/shared/types/song';
@@ -123,14 +124,11 @@ export function UnifiedBottomBar() {
         <div className="w-48 md:w-64 flex items-center space-x-2 md:space-x-3">
           {currentSong && (
             <>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 rounded-md overflow-hidden flex-shrink-0">
-                <img 
+              <div className="w-10 md:w-12 rounded-md overflow-hidden flex-shrink-0">
+                <SongImage 
                   src={currentSong.thumbnail_url} 
                   alt={currentSong.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/default-album.png';
-                  }}
+                  className="w-full h-auto"
                 />
               </div>
               <div className="flex-1 min-w-0">

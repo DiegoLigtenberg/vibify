@@ -107,12 +107,12 @@ export function PlayerBar() {
       {/* Song Info - Clickable */}
       <div className="flex items-center space-x-4 w-1/4">
         <div className="flex items-center space-x-3 flex-1 cursor-pointer" onClick={handleSongClick}>
-          <div className="w-14 h-14 bg-spotify-gray rounded-md flex-shrink-0">
+          <div className="w-14 bg-spotify-gray rounded-md flex-shrink-0">
             {currentSong.thumbnail_url && (
               <img
                 src={currentSong.thumbnail_url}
                 alt={currentSong.title}
-                className="w-full h-full object-cover rounded-md"
+                className="w-full h-auto rounded-md"
               />
             )}
           </div>

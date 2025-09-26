@@ -21,10 +21,9 @@ def test_env_vars():
     os.environ["B2_ENDPOINT_URL"] = "https://test.endpoint.com"
     os.environ["B2_AUDIO_FOLDER"] = "audio"
     os.environ["B2_THUMBNAIL_FOLDER"] = "thumbnail"
-    os.environ["B2_BASE_URL"] = "https://test.base.url"
     yield
     # Cleanup after test
     for key in ["B2_KEY_ID", "B2_APPLICATION_KEY", "B2_BUCKET_NAME", 
-                "B2_ENDPOINT_URL", "B2_AUDIO_FOLDER", "B2_THUMBNAIL_FOLDER", "B2_BASE_URL"]:
+                "B2_ENDPOINT_URL", "B2_AUDIO_FOLDER", "B2_THUMBNAIL_FOLDER"]:
         if key in os.environ:
             del os.environ[key]

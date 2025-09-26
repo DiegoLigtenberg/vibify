@@ -8,6 +8,7 @@ import { Song } from '@/shared/types/song';
 import { usePlayerStore } from '../../store/player-store';
 import { useSongStore } from '../../store/song-store';
 import { cn } from '../../lib/utils';
+import { SongImage } from '../ui/song-image';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -159,14 +160,11 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 onClick={() => handleSongPlay(song)}
               >
-                <div className="w-12 h-12 bg-gray-800 rounded-md overflow-hidden flex-shrink-0 mr-3">
-                  <img 
+                <div className="w-12 rounded-md overflow-hidden flex-shrink-0 mr-3">
+                  <SongImage 
                     src={song.thumbnail_url} 
                     alt={song.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/default-album.png';
-                    }}
+                    className="w-full h-auto"
                   />
                 </div>
                 <div className="flex-1 min-w-0">

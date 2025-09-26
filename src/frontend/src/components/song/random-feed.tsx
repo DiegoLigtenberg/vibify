@@ -111,15 +111,15 @@ export function RandomFeed() {
 
             {/* Song Info */}
             <div className="col-span-5 flex items-center space-x-3">
-              <div className="w-10 h-10 bg-spotify-lightgray rounded flex-shrink-0">
+              <div className="w-10 bg-spotify-lightgray rounded flex-shrink-0">
                 {song.thumbnail_url ? (
                   <img
                     src={song.thumbnail_url}
                     alt={song.title}
-                    className="w-full h-full object-cover rounded"
+                    className="w-full h-auto rounded"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-10 flex items-center justify-center">
                     <span className="text-spotify-muted text-xs">♪</span>
                   </div>
                 )}

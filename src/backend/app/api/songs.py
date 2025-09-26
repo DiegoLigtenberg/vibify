@@ -2,10 +2,13 @@
 Songs API endpoints for Vibify
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Any, Optional
+import requests
 from ..services.song_service import SongService
 from ..models.song import Song, SongResponse, SongSearchParams
+from ..utils.b2_client import B2Client
 from ..config.logging_global import get_logger
 
 logger = get_logger(__name__)
@@ -341,3 +344,83 @@ async def get_song(song_id: str):
     song_with_urls = song_service.get_song_with_urls(mock_song)
     
     return song_with_urls
+
+
+@router.get("/{song_id}/audio")
+async def get_song_audio(song_id: str):
+    """Proxy endpoint to serve audio files from private B2 bucket"""
+    try:
+        song_service = SongService()
+        
+        # Get song from database to get the B2 URL
+        song_data = song_service.supabase.table('songs').select('storage_url').eq('id', song_id).execute()
+        
+        if not song_data.data:
+            raise HTTPException(status_code=404, detail="Song not found")
+        
+        b2_url = song_data.data[0]['storage_url']
+        
+        # Get B2 auth token
+        b2_client = B2Client()
+        b2_client._ensure_authenticated()
+        
+        # Proxy request to B2 with auth headers
+        headers = {'Authorization': b2_client._auth_token}
+        response = requests.get(b2_url, headers=headers, stream=True)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        
+        # Return streaming response
+        return StreamingResponse(
+            iter(lambda: response.raw.read(8192), b''),
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": f"inline; filename={song_id}.mp3",
+                "Accept-Ranges": "bytes"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving audio for song {song_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving audio file")
+
+
+@router.get("/{song_id}/thumbnail")
+async def get_song_thumbnail(song_id: str):
+    """Proxy endpoint to serve thumbnail images from private B2 bucket"""
+    try:
+        song_service = SongService()
+        
+        # Get song from database to get the B2 URL
+        song_data = song_service.supabase.table('songs').select('thumbnail_url').eq('id', song_id).execute()
+        
+        if not song_data.data:
+            raise HTTPException(status_code=404, detail="Song not found")
+        
+        b2_url = song_data.data[0]['thumbnail_url']
+        
+        # Get B2 auth token
+        b2_client = B2Client()
+        b2_client._ensure_authenticated()
+        
+        # Proxy request to B2 with auth headers
+        headers = {'Authorization': b2_client._auth_token}
+        response = requests.get(b2_url, headers=headers, stream=True)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=404, detail="Thumbnail not found")
+        
+        # Return streaming response
+        return StreamingResponse(
+            iter(lambda: response.raw.read(8192), b''),
+            media_type="image/png",
+            headers={
+                "Content-Disposition": f"inline; filename={song_id}.png",
+                "Cache-Control": "public, max-age=3600"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving thumbnail for song {song_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving thumbnail")

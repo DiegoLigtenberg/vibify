@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Play, Heart, MoreHorizontal, Download } from 'lucide-react';
 import { Song } from '@/shared/types/song';
 import { useSongStore } from '@/store/song-store';
+import { SongImage } from '../ui/song-image';
 
 interface SongDetailsPopupProps {
   song: Song | null;
@@ -52,14 +53,11 @@ export default function SongDetailsPopup({
         {/* Header */}
         <div className="flex items-start p-6 border-b border-gray-700" style={{backgroundColor: '#0a0a0a'}}>
           {/* Thumbnail */}
-          <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 flex-shrink-0">
-            <img 
+          <div className="w-16 rounded-lg overflow-hidden mr-4 flex-shrink-0">
+            <SongImage 
               src={song.thumbnail_url} 
               alt={song.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder-album.png';
-              }}
+              className="w-full h-auto"
             />
           </div>
           

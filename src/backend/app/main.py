@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api import songs, upload
 from .config.logging_global import get_logger
 from .config.simple_config import Config
+from .utils.b2_client import B2Client
 
 
 # Setup logging
@@ -38,6 +39,17 @@ app.add_middleware(
 # Include routers
 app.include_router(songs.router)
 app.include_router(upload.router)
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    try:
+        # Warm up B2 client for faster first requests
+        b2_client = B2Client()
+        b2_client.warm_up()
+        logger.info("B2 client warmed up successfully")
+    except Exception as e:
+        logger.error(f"Failed to warm up B2 client: {e}")
 
 @app.get("/")
 async def root():

@@ -46,15 +46,19 @@ class SongUploadService:
         return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     
     def get_b2_url(self, file_id: str, file_type: str) -> str:
-        """Generate a URL for a file in the B2 bucket."""
+        """Generate a presigned URL for a file in the B2 bucket."""
+        from ..utils.b2_client import B2Client
+        
+        b2_client = B2Client()
+        
         if file_type == "audio":
             extension = AUDIO_EXTENSION
-            folder = Config.B2_AUDIO_FOLDER
+            filename = f"{file_id}.{extension}"
+            return b2_client.get_audio_url(filename)
         else:
             extension = THUMBNAIL_EXTENSION_LOCAL_DIR
-            folder = Config.B2_THUMBNAIL_FOLDER
-        
-        return f"{Config.B2_BASE_URL}/{folder}/{file_id}.{extension}"
+            filename = f"{file_id}.{extension}"
+            return b2_client.get_thumbnail_url(filename)
     
     def _check_local_files_exist(self, file_id: str) -> bool:
         """

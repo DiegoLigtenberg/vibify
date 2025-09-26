@@ -27,7 +27,7 @@ class Config:
     B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY", "")
     B2_BUCKET_NAME = os.getenv("B2_BUCKET_NAME", "")
     B2_ENDPOINT_URL = os.getenv("B2_ENDPOINT_URL", "")
-    B2_BASE_URL = os.getenv("B2_BASE_URL", "")
+    B2_API_URL = os.getenv("B2_API_URL")
     B2_AUDIO_FOLDER = os.getenv("B2_AUDIO_FOLDER", "audio")
     B2_THUMBNAIL_FOLDER = os.getenv("B2_THUMBNAIL_FOLDER", "thumbnails")
     
@@ -73,7 +73,7 @@ class Config:
         """Validate required configuration"""
         required_vars = [
             "SUPABASE_URL", "SUPABASE_KEY", "B2_KEY_ID", "B2_APPLICATION_KEY",
-            "B2_BUCKET_NAME", "B2_ENDPOINT_URL", "B2_BASE_URL"
+            "B2_BUCKET_NAME", "B2_ENDPOINT_URL", "B2_API_URL"
         ]
         
         missing = []
