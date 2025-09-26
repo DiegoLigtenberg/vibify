@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 // Disable static generation for this page
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ import { calculateBatchSizing } from '../../../lib/batch-sizing';
 import { TOP_GENRES, Genre } from '../../../lib/constants/genres';
 
 export default function GenrePage() {
+  const searchParams = useSearchParams();
   const [randomGenres, setRandomGenres] = useState<Genre[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGenres, setFilteredGenres] = useState<Genre[]>([]);
@@ -43,6 +45,19 @@ export default function GenrePage() {
     loadNextGenreDiscover, 
     resetGenreDiscover 
   } = useSongStore();
+
+  // Handle URL parameter for auto-selecting genre
+  useEffect(() => {
+    const selectedGenre = searchParams.get('selected');
+    if (selectedGenre && !selectedGenres.includes(selectedGenre)) {
+      // Validate that the genre exists in our TOP_GENRES list
+      const genreExists = TOP_GENRES.some(genre => genre.name === selectedGenre);
+      if (genreExists) {
+        setSelectedGenres([selectedGenre]);
+        initGenreDiscover([selectedGenre]);
+      }
+    }
+  }, [searchParams, selectedGenres, initGenreDiscover]);
 
   // Calculate responsive random genres on mount and resize
   useEffect(() => {
@@ -130,7 +145,6 @@ export default function GenrePage() {
     const el = sentinelRef.current;
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
-      console.log(`🔍 Genre intersection check: isIntersecting=${first.isIntersecting}, isLoading=${isLoadingGenreDiscover}, hasMore=${genreDiscoverHasMore}, rootMargin=${rootMargin}`);
       
       // Only trigger if:
       // 1. Element is intersecting
@@ -145,7 +159,6 @@ export default function GenrePage() {
           genreDiscoverHasMore && 
           selectedGenres.length > 0 &&
           first.intersectionRatio > 0.1) {
-        console.log(`🔄 Genre intersection detected - loading next batch of ${batchSize} songs (ratio: ${first.intersectionRatio})`);
         setIsProcessingLoad(true);
         loadNextGenreDiscover(batchSize).finally(() => {
           setIsProcessingLoad(false);
@@ -160,11 +173,8 @@ export default function GenrePage() {
   // Scroll-based fallback disabled for testing
 
   const handleGenreToggle = (genreName: string) => {
-    console.log('🎵 Genre toggle clicked:', genreName, 'Current genres:', selectedGenres);
-    
     if (selectedGenres.includes(genreName)) {
       const newGenres = selectedGenres.filter(g => g !== genreName);
-      console.log('🎵 Removing genre, new genres:', newGenres);
       setSelectedGenres(newGenres);
       if (newGenres.length > 0) {
         initGenreDiscover(newGenres);
@@ -173,7 +183,6 @@ export default function GenrePage() {
       }
     } else if (selectedGenres.length < 3) {
       const newGenres = [...selectedGenres, genreName];
-      console.log('🎵 Adding genre, new genres:', newGenres);
       setSelectedGenres(newGenres);
       initGenreDiscover(newGenres);
     }
@@ -255,9 +264,6 @@ export default function GenrePage() {
                     } else if (exactMatch && selectedGenres.includes(exactMatch.name)) {
                       // Genre already selected
                       setSearchQuery('');
-                    } else {
-                      // No exact match found - show error or do nothing
-                      console.log('No exact genre match found for:', searchQuery);
                     }
                   }
                 }}

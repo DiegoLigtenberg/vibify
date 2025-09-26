@@ -29,9 +29,20 @@ export function SongCard({
 }: SongCardProps) {
   const setCurrentSong = usePlayerStore(s => s.setCurrentSong);
   const addToQueue = usePlayerStore(s => s.addToQueue);
+  const { currentSong, isPlaying, isLoading } = usePlayerStore();
   const { toggleLike, isLiked } = useSongStore();
+  
+  // Check if this song is currently playing or loading
+  const isCurrentSong = currentSong?.id === song.id;
+  const isCurrentlyPlaying = isCurrentSong && isPlaying;
+  const isCurrentlyLoading = isCurrentSong && isLoading;
 
   const handlePlay = () => {
+    // Prevent multiple instances - if same song is already playing/loading, don't do anything
+    if (isCurrentSong && (isPlaying || isLoading)) {
+      return;
+    }
+    
     if (onPlay) {
       onPlay(song);
     } else {
@@ -79,6 +90,7 @@ export function SongCard({
         'aspect-square flex flex-col justify-between',
         'touch-manipulation', // Better touch handling
         compact ? 'p-2' : 'p-3',
+        isCurrentSong && (isPlaying || isLoading) ? 'ring-2 ring-spotify-green' : '',
         className
       )}
       onClick={handlePlay}
@@ -97,10 +109,23 @@ export function SongCard({
         {/* Play Button - Centered */}
         <button
           onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-60 transition-all duration-200 opacity-0 group-hover:opacity-100"
+          disabled={isCurrentSong && (isPlaying || isLoading)}
+          className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-60 transition-all duration-200 ${
+            isCurrentSong ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
         >
-          <div className="bg-spotify-green rounded-full p-2 hover:scale-110 transition-transform">
-            <Play className="h-4 w-4 text-white ml-0.5" />
+          <div className={`rounded-full p-2 transition-transform ${
+            isCurrentlyLoading 
+              ? 'bg-spotify-muted animate-pulse' 
+              : isCurrentlyPlaying 
+                ? 'bg-spotify-green' 
+                : 'bg-spotify-green hover:scale-110'
+          }`}>
+            {isCurrentlyLoading ? (
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Play className="h-4 w-4 text-white ml-0.5" />
+            )}
           </div>
         </button>
       </div>

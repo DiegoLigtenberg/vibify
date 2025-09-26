@@ -3,6 +3,29 @@ import { Howl } from 'howler';
 import { SongsAPI } from '../lib/api';
 import type { Song } from '@/shared/types/song';
 
+// Initialize audio context for background playback on mobile
+const initializeAudioContext = () => {
+  if (typeof window !== 'undefined' && 'AudioContext' in window) {
+    // Resume audio context on user interaction (required for mobile)
+    const resumeAudioContext = () => {
+      const audioContext = (window as any).audioContext;
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    };
+    
+    // Add event listeners for user interaction
+    document.addEventListener('touchstart', resumeAudioContext, { once: true });
+    document.addEventListener('click', resumeAudioContext, { once: true });
+    document.addEventListener('keydown', resumeAudioContext, { once: true });
+  }
+};
+
+// Initialize on module load
+if (typeof window !== 'undefined') {
+  initializeAudioContext();
+}
+
 interface PlayerState {
   // Current song
   currentSong: Song | null;
@@ -126,6 +149,70 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           playStartTime: now,
           hasRecordedPlay: false 
         });
+        
+        // Set up Media Session API for background playback on mobile
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: song.title,
+            artist: song.artist,
+            album: song.album || 'Unknown Album',
+            artwork: song.thumbnail_url ? [
+              { src: song.thumbnail_url, sizes: '96x96', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '128x128', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '192x192', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '256x256', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '384x384', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' }
+            ] : []
+          });
+          
+          // Set playback state to playing
+          navigator.mediaSession.playbackState = 'playing';
+          
+          // Set up media session action handlers
+          navigator.mediaSession.setActionHandler('play', () => {
+            const { howl } = get();
+            if (howl && !howl.playing()) {
+              howl.play();
+            }
+          });
+          
+          navigator.mediaSession.setActionHandler('pause', () => {
+            const { howl } = get();
+            if (howl && howl.playing()) {
+              howl.pause();
+            }
+          });
+          
+          navigator.mediaSession.setActionHandler('previoustrack', () => {
+            const { previous } = get();
+            previous();
+          });
+          
+          navigator.mediaSession.setActionHandler('nexttrack', () => {
+            const { next } = get();
+            next();
+          });
+          
+          navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+            const { howl, currentTime } = get();
+            if (howl) {
+              const seekTime = Math.max(0, currentTime - (details.seekOffset || 10));
+              howl.seek(seekTime);
+              set({ currentTime: seekTime });
+            }
+          });
+          
+          navigator.mediaSession.setActionHandler('seekforward', (details) => {
+            const { howl, currentTime, duration } = get();
+            if (howl) {
+              const seekTime = Math.min(duration, currentTime + (details.seekOffset || 10));
+              howl.seek(seekTime);
+              set({ currentTime: seekTime });
+            }
+          });
+        }
+        
         // Start progress ticker
         const intervalId = setInterval(() => {
           const { isUserSeeking } = get();
@@ -154,6 +241,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           set({ progressIntervalId: null });
         }
         set({ isPlaying: false });
+        
+        // Update media session state
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       },
       onstop: () => {
         const { progressIntervalId } = get();
@@ -162,6 +254,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           set({ progressIntervalId: null });
         }
         set({ isPlaying: false, currentTime: 0 });
+        
+        // Clear media session
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'none';
+        }
       },
       onseek: () => {
         set({ currentTime: newHowl.seek() || 0 });

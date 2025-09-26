@@ -48,6 +48,13 @@ export function DiscoverSection() {
   };
 
   const handlePlay = (song: any, index: number) => {
+    const { currentSong, isPlaying, isLoading } = usePlayerStore.getState();
+    
+    // Prevent multiple instances - if same song is already playing/loading, don't do anything
+    if (currentSong?.id === song.id && (isPlaying || isLoading)) {
+      return;
+    }
+    
     setQueue(displaySongs, index);
     setCurrentSong(song);
   };
