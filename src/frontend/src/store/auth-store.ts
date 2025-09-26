@@ -21,6 +21,8 @@ interface AuthState {
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   clearError: () => void;
   clearNewAccountFlag: () => void;
+  setUser: (user: User) => void;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -185,6 +187,14 @@ export const useAuthStore = create<AuthState>()(
 
       clearNewAccountFlag: () => {
         set({ isNewAccount: false });
+      },
+
+      setUser: (user: User) => {
+        set({ user });
+      },
+
+      setIsAuthenticated: (isAuthenticated: boolean) => {
+        set({ isAuthenticated });
       },
     }),
     {

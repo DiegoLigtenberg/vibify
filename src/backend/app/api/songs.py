@@ -2,7 +2,7 @@
 Songs API endpoints for Vibify
 """
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from typing import List, Dict, Any, Optional
 import requests
@@ -222,12 +222,21 @@ async def get_songs_by_genre(
         raise HTTPException(status_code=500, detail=f"Error fetching songs by genre: {str(e)}")
 
 @router.get("/liked", response_model=List[Song])
-async def get_liked_songs():
-    """Get all liked songs"""
+async def get_liked_songs(request: Request):
+    """Get all liked songs for the authenticated user"""
     try:
+        # Get user_id from request headers
+        user_id = request.headers.get("X-User-ID")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+        
         song_service = SongService()
+        song_service.set_current_user(user_id)
         songs = song_service.get_liked_songs()
         return songs
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching liked songs: {str(e)}")
 
@@ -269,22 +278,40 @@ async def get_song_details(song_id: str):
         raise HTTPException(status_code=500, detail=f"Error fetching song details: {str(e)}")
 
 @router.post("/{song_id}/like")
-async def like_song(song_id: str):
+async def like_song(song_id: str, request: Request):
     """Like a song"""
     try:
+        # Get user_id from request headers
+        user_id = request.headers.get("X-User-ID")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+        
         song_service = SongService()
+        song_service.set_current_user(user_id)
         result = song_service.like_song(song_id)
         return {"success": True, "liked": result}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error liking song: {str(e)}")
 
 @router.delete("/{song_id}/like")
-async def unlike_song(song_id: str):
+async def unlike_song(song_id: str, request: Request):
     """Unlike a song"""
     try:
+        # Get user_id from request headers
+        user_id = request.headers.get("X-User-ID")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+        
         song_service = SongService()
+        song_service.set_current_user(user_id)
         result = song_service.unlike_song(song_id)
-        return {"success": True, "liked": result}
+        return {"success": True, "unliked": result}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error unliking song: {str(e)}")
 

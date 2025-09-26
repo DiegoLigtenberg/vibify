@@ -419,11 +419,15 @@ class SongService:
         try:
             # For now, we'll use a simple approach with a user_likes table
             # In a real app, you'd have user authentication
-            # Get user_id from request context or use default
-            user_id = getattr(self, '_current_user_id', "default_user")
+            # Get user_id from request context
+            user_id = getattr(self, '_current_user_id', None)
+            if not user_id:
+                raise ValueError("User ID not set in service context")
+            logger.info(f"Like song - user_id: {user_id}, song_id: {song_id}")
             
             # Check if already liked
             existing = self.supabase.table("user_likes").select("*").eq("user_id", user_id).eq("song_id", song_id).execute()
+            logger.info(f"Existing likes: {existing.data}")
             
             if existing.data and len(existing.data) > 0:
                 # Unlike the song
@@ -458,8 +462,10 @@ class SongService:
             False (unliked)
         """
         try:
-            # Get user_id from request context or use default
-            user_id = getattr(self, '_current_user_id', "default_user")
+            # Get user_id from request context
+            user_id = getattr(self, '_current_user_id', None)
+            if not user_id:
+                raise ValueError("User ID not set in service context")
             
             # Remove like
             self.supabase.table("user_likes").delete().eq("user_id", user_id).eq("song_id", song_id).execute()
@@ -485,8 +491,10 @@ class SongService:
             True if liked, False otherwise
         """
         try:
-            # Get user_id from request context or use default
-            user_id = getattr(self, '_current_user_id', "default_user")
+            # Get user_id from request context
+            user_id = getattr(self, '_current_user_id', None)
+            if not user_id:
+                raise ValueError("User ID not set in service context")
             
             result = self.supabase.table("user_likes").select("*").eq("user_id", user_id).eq("song_id", song_id).execute()
             return len(result.data) > 0
@@ -558,8 +566,10 @@ class SongService:
                 logger.error("Error: Supabase connection not available")
                 return []
                 
-            # Get user_id from request context or use default
-            user_id = getattr(self, '_current_user_id', "default_user")
+            # Get user_id from request context
+            user_id = getattr(self, '_current_user_id', None)
+            if not user_id:
+                raise ValueError("User ID not set in service context")
             
             # Get liked song IDs
             likes_result = self.supabase.table("user_likes").select("song_id").eq("user_id", user_id).execute()

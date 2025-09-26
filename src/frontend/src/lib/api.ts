@@ -222,10 +222,19 @@ export class SongsAPI {
 
   static async likeSong(songId: string): Promise<boolean> {
     try {
+      // Get current user from auth store
+      const authStore = await import('../store/auth-store');
+      const { user } = authStore.useAuthStore.getState();
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/songs/${songId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-ID': user.id,
         },
       });
 
@@ -243,10 +252,19 @@ export class SongsAPI {
 
   static async unlikeSong(songId: string): Promise<boolean> {
     try {
+      // Get current user from auth store
+      const authStore = await import('../store/auth-store');
+      const { user } = authStore.useAuthStore.getState();
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/songs/${songId}/like`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-ID': user.id,
         },
       });
 
@@ -255,7 +273,7 @@ export class SongsAPI {
       }
 
       const result = await response.json();
-      return result.liked;
+      return result.unliked;
     } catch (error) {
       console.error('Error unliking song:', error);
       return false;
@@ -280,7 +298,19 @@ export class SongsAPI {
 
   static async getLikedSongs(): Promise<Song[]> {
     try {
-      const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/songs/liked`);
+      // Get current user from auth store
+      const authStore = await import('../store/auth-store');
+      const { user } = authStore.useAuthStore.getState();
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await fetch(`${APP_CONFIG.api.baseUrl}/api/songs/liked`, {
+        headers: {
+          'X-User-ID': user.id,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Get liked songs failed: ${response.statusText}`);

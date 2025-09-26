@@ -68,6 +68,9 @@ class Config:
         AUDIO_FOLDER = Path(os.getenv("AUDIO_FOLDER", "/app/data/audio"))
         THUMBNAIL_FOLDER = Path(os.getenv("THUMBNAIL_FOLDER", "/app/data/thumbnails"))
     
+    # Development Test User
+    TEST_USER_USERNAME = "test_user"
+    
     # Upload Limits (same for all environments)
     MAX_UPLOAD_FILES = 10000
     MAX_FILE_SIZE_MB = 50

@@ -110,6 +110,11 @@ async def delete_account(request: DeleteRequest):
         if not request.username or len(request.username) > 10:
             raise HTTPException(status_code=400, detail="Invalid username")
         
+        # Prevent deletion of test user in development
+        if Config.IS_DEVELOPMENT and request.username == Config.TEST_USER_USERNAME:
+            logger.warning(f"Attempted to delete test user '{request.username}' in development mode - blocked")
+            raise HTTPException(status_code=400, detail="Cannot delete test user in development mode")
+        
         logger.info(f"Attempting to delete user: {request.username}")
         logger.info(f"Supabase URL: {Config.SUPABASE_URL}")
         logger.info(f"Service role key present: {bool(Config.SUPABASE_SERVICE_ROLE_KEY)}")
