@@ -503,10 +503,12 @@ export const useSongStore = create<SongState>((set, get) => ({
       }
       
       const newLikedSongs = new Set(likedSongs);
-      if (result) {
-        newLikedSongs.add(songId);
-      } else {
+      if (isCurrentlyLiked) {
+        // We just unliked the song, so remove it
         newLikedSongs.delete(songId);
+      } else {
+        // We just liked the song, so add it
+        newLikedSongs.add(songId);
       }
       
       set({

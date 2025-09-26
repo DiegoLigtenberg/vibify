@@ -29,6 +29,10 @@ interface PlayerState {
   isUserSeeking: boolean;
   beginSeek: () => void;
   endSeek: (time: number) => void;
+  syncIntervalId: any;
+  
+  // Callback for auto-loading more songs
+  onEndOfQueue?: () => void;
   
   // Actions
   setCurrentSong: (song: Song) => void;
@@ -53,6 +57,9 @@ interface PlayerState {
   
   // Cleanup
   cleanup: () => void;
+  
+  // Set callback for auto-loading
+  setOnEndOfQueue: (callback: (() => void) | undefined) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -73,6 +80,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   howl: null,
   progressIntervalId: null,
   isUserSeeking: false,
+  syncIntervalId: null,
+  onEndOfQueue: undefined,
 
   // Actions
   setCurrentSong: (song: Song) => {
@@ -91,6 +100,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       html5: true,
       volume: get().volume,
       autoplay: true,
+      preload: true, // Preload for better mobile experience
+      // Enable background playback on mobile
+      onloaderror: (id, error) => {
+        console.error('Howler load error:', error);
+        // Fallback to regular audio for mobile
+        if (typeof window !== 'undefined' && 'ontouchstart' in window) {
+          const audio = new Audio(song.storage_url);
+          audio.volume = get().volume;
+          audio.autoplay = true;
+          audio.loop = false;
+          audio.play().catch(console.error);
+        }
+      },
       onload: () => {
         set({ 
           isLoading: false, 
@@ -169,6 +191,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
 
     set({ howl: newHowl });
+
+    // Start sync interval to keep UI state in sync with Howler
+    const syncInterval = setInterval(() => {
+      const { howl, isPlaying } = get();
+      if (howl) {
+        const actuallyPlaying = howl.playing();
+        if (actuallyPlaying !== isPlaying) {
+          set({ isPlaying: actuallyPlaying });
+        }
+      }
+    }, 100); // Check every 100ms
+    set({ syncIntervalId: syncInterval });
   },
 
   play: () => {
@@ -186,10 +220,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   togglePlay: () => {
-    const { isPlaying, play, pause } = get();
-    if (isPlaying) {
-      pause();
-    } else {
+    const { howl, isPlaying } = get();
+    if (howl) {
+      // Use Howler's actual playing state for more reliable toggle
+      if (howl.playing()) {
+        howl.pause();
+      } else {
+        howl.play();
+      }
+    } else if (!isPlaying) {
+      // If no howl instance but we're not playing, try to play
+      const { play } = get();
       play();
     }
   },
@@ -267,7 +308,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   next: () => {
-    const { queue, currentIndex, repeatMode, shuffleMode, setCurrentSong } = get();
+    const { queue, currentIndex, repeatMode, shuffleMode, setCurrentSong, onEndOfQueue } = get();
     
     if (queue.length === 0) return;
 
@@ -277,6 +318,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (repeatMode === 'all') {
         nextIndex = 0;
       } else {
+        // Auto-load more songs when reaching the end
+        if (onEndOfQueue) {
+          onEndOfQueue();
+        }
         return; // End of queue
       }
     }
@@ -319,13 +364,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   cleanup: () => {
-    const { howl, progressIntervalId } = get();
+    const { howl, progressIntervalId, syncIntervalId } = get();
     if (progressIntervalId) {
       clearInterval(progressIntervalId);
+    }
+    if (syncIntervalId) {
+      clearInterval(syncIntervalId);
     }
     if (howl) {
       howl.unload();
     }
-    set({ howl: null, isPlaying: false, currentTime: 0, duration: 0, progressIntervalId: null });
+    set({ 
+      howl: null, 
+      isPlaying: false, 
+      currentTime: 0, 
+      duration: 0, 
+      progressIntervalId: null,
+      syncIntervalId: null 
+    });
+  },
+
+  setOnEndOfQueue: (callback) => {
+    set({ onEndOfQueue: callback });
   }
 }));

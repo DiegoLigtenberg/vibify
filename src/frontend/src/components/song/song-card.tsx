@@ -38,15 +38,34 @@ export function SongCard({
       setCurrentSong(song);
       addToQueue(song);
       // Immediate autoplay handled by player-store Howler.autoplay
+      
+      // For mobile, ensure autoplay works by triggering user interaction
+      if (typeof window !== 'undefined' && 'ontouchstart' in window) {
+        // Mobile device - ensure autoplay works
+        const audio = new Audio();
+        audio.volume = 0;
+        audio.play().then(() => {
+          audio.pause();
+          audio.remove();
+        }).catch(() => {
+          // Ignore errors, this is just to enable autoplay
+        });
+      }
     }
   };
 
   const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    
     if (onLike) {
       onLike(song);
     } else {
-      await toggleLike(song.id);
+      try {
+        await toggleLike(song.id);
+      } catch (error) {
+        console.error('Toggle like failed:', error);
+      }
     }
   };
 
@@ -75,12 +94,14 @@ export function SongCard({
           />
         </div>
         
-        {/* Play Button */}
+        {/* Play Button - Centered */}
         <button
           onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-          className="play-button"
+          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-60 transition-all duration-200 opacity-0 group-hover:opacity-100"
         >
-          <Play className="h-3 w-3 text-white" />
+          <div className="bg-spotify-green rounded-full p-2 hover:scale-110 transition-transform">
+            <Play className="h-4 w-4 text-white ml-0.5" />
+          </div>
         </button>
       </div>
 
@@ -109,8 +130,12 @@ export function SongCard({
           
           <button
             onClick={handleLike}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             className={cn(
-              'text-spotify-muted hover:text-spotify-green transition-colors',
+              'text-spotify-muted hover:text-spotify-green transition-colors relative z-10 p-1 rounded-full hover:bg-gray-700/50',
               isLiked(song.id) && 'text-spotify-green'
             )}
           >

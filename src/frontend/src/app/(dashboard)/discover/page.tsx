@@ -12,7 +12,7 @@ import { calculateBatchSizing } from '../../../lib/batch-sizing';
 
 export default function DiscoverPage() {
   const { discoverItems, discoverHasMore, isLoadingDiscover, initDiscover, loadNextDiscover, resetDiscover } = useSongStore();
-  const { setCurrentSong, setQueue } = usePlayerStore();
+  const { setCurrentSong, setQueue, setOnEndOfQueue } = usePlayerStore();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   
@@ -53,6 +53,23 @@ export default function DiscoverPage() {
   useEffect(() => {
     initDiscover();
   }, [initDiscover]);
+
+  // Set up auto-loading when reaching end of queue
+  useEffect(() => {
+    const handleEndOfQueue = async () => {
+      if (discoverHasMore && !isLoadingDiscover) {
+        console.log('🔄 Auto-loading more songs at end of queue');
+        await loadNextDiscover(batchSize);
+      }
+    };
+
+    setOnEndOfQueue(handleEndOfQueue);
+
+    // Cleanup
+    return () => {
+      setOnEndOfQueue(undefined);
+    };
+  }, [discoverHasMore, isLoadingDiscover, loadNextDiscover, batchSize, setOnEndOfQueue]);
 
   // Track when discoverItems changes to identify re-render timing
   useEffect(() => {

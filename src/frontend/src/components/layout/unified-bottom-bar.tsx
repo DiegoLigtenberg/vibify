@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, 
   Pause, 
@@ -51,6 +51,31 @@ export function UnifiedBottomBar() {
   // State for song details popup
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [detailedSong, setDetailedSong] = useState<Song | null>(null);
+
+  // Keyboard event listeners for media controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Prevent default behavior for media keys
+      if (event.code === 'Space' || event.code === 'MediaPlayPause') {
+        event.preventDefault();
+        togglePlay();
+      } else if (event.code === 'MediaTrackNext') {
+        event.preventDefault();
+        next();
+      } else if (event.code === 'MediaTrackPrevious') {
+        event.preventDefault();
+        previous();
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [togglePlay, next, previous]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
@@ -249,23 +274,23 @@ export function UnifiedBottomBar() {
           )}
         </div>
 
-        {/* Right Section: Volume Controls - Hidden on mobile */}
-        <div className="hidden md:flex w-64 items-center justify-end space-x-2 px-6">
+        {/* Right Section: Volume Controls */}
+        <div className="flex w-32 md:w-64 items-center justify-end space-x-1 md:space-x-2 px-2 md:px-6">
           {currentSong ? (
             <>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMute}
-                className="p-1 h-8 w-8 text-gray-400 hover:text-white"
+                className="p-1 h-6 w-6 md:h-8 md:w-8 text-gray-400 hover:text-white"
               >
                 {isMuted || volume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-3 w-3 md:h-4 md:w-4" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-3 w-3 md:h-4 md:w-4" />
                 )}
               </Button>
-              <div className="relative w-20 h-1">
+              <div className="relative w-12 md:w-20 h-1">
                 <div className="absolute inset-0 bg-gray-600 rounded-lg"></div>
                 <div 
                   className="absolute inset-y-0 left-0 bg-spotify-green rounded-lg transition-all duration-150"
@@ -275,19 +300,19 @@ export function UnifiedBottomBar() {
                   type="range"
                   min="0"
                   max="1"
-                  step="0.1"
+                  step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
                   className="absolute inset-0 w-full h-full bg-transparent appearance-none cursor-pointer slider"
                 />
               </div>
               
-              {/* Download Button */}
+              {/* Download Button - Hidden on mobile */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDownload}
-                className="p-2 h-8 w-8 text-gray-400 hover:text-white transition-colors"
+                className="hidden md:flex p-2 h-8 w-8 text-gray-400 hover:text-white transition-colors"
                 title="Download song"
               >
                 <Download className="h-4 w-4" />

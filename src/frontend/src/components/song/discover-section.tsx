@@ -11,7 +11,7 @@ import { Song } from '@/shared/types/song';
 import { UnifiedGrid } from '../common/unified-tile';
 
 export function DiscoverSection() {
-  const { randomSongs, isLoadingRandom, randomError, loadRandomSongs } = useSongStore();
+  const { randomSongs, isLoadingRandom, randomError, loadRandomSongs, toggleLike } = useSongStore();
   const { setCurrentSong, setQueue } = usePlayerStore();
   const router = useRouter();
   
@@ -48,9 +48,12 @@ export function DiscoverSection() {
     setCurrentSong(song);
   };
 
-  const handleLike = (song: any) => {
-    console.log('Liking:', song.title);
-    // TODO: Implement like functionality
+  const handleLike = async (song: any) => {
+    try {
+      await toggleLike(song.id);
+    } catch (error) {
+      console.error('Toggle like failed:', error);
+    }
   };
 
   return (

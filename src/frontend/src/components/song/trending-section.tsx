@@ -9,7 +9,7 @@ import { TrendingUp } from 'lucide-react';
 import { UnifiedGrid } from '../common/unified-tile';
 
 export function TrendingSection() {
-  const { popularSongs, isLoadingPopular, popularError, loadPopularSongs } = useSongStore();
+  const { popularSongs, isLoadingPopular, popularError, loadPopularSongs, toggleLike } = useSongStore();
   const { setCurrentSong, setQueue } = usePlayerStore();
   
   const songsPerPage = 10; // Load more than we display for consistency
@@ -27,9 +27,12 @@ export function TrendingSection() {
     setCurrentSong(song);
   };
 
-  const handleLike = (song: any) => {
-    console.log('Liking:', song.title);
-    // TODO: Implement like functionality
+  const handleLike = async (song: any) => {
+    try {
+      await toggleLike(song.id);
+    } catch (error) {
+      console.error('Toggle like failed:', error);
+    }
   };
 
   return (
