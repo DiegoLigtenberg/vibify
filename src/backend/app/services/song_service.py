@@ -989,7 +989,7 @@ class SongService:
 
     def get_discover_feed(self, limit: int = 20, cursor: int = 0, seed: int = 0) -> Dict[str, Any]:
         """
-        Return a randomized paginated feed of songs using database-level randomization.
+        Return a randomized paginated feed of songs using proper pagination.
         """
         try:
             if not self.supabase:
@@ -1009,22 +1009,19 @@ class SongService:
             if total_count == 0:
                 return {"songs": [], "next_cursor": cursor, "has_more": False, "seed": seed, "total": 0}
 
-            # Use a more efficient approach: get random songs directly from database
-            # Use the seed to create a deterministic offset for pagination
-            # This is much more efficient than fetching all songs and shuffling
+            # Use proper pagination with offset
+            # cursor is the offset, limit is how many to fetch
+            start_offset = cursor
+            end_offset = cursor + limit - 1
             
-            # Calculate a deterministic offset based on seed and cursor
-            # This ensures the same seed always returns the same "random" order
-            deterministic_offset = (seed + cursor) % max(1, total_count - limit)
-            
-            # Get random songs using database-level randomization
+            # Get songs with proper pagination
             result = (
                 self.supabase
                 .table('songs')
                 .select('*')
                 .eq('is_public', True)
-                .order('created_at', desc=True)  # Use a consistent ordering
-                .range(deterministic_offset, deterministic_offset + limit - 1)
+                .order('created_at', desc=True)  # Consistent ordering
+                .range(start_offset, end_offset)
                 .execute()
             )
             
@@ -1058,6 +1055,7 @@ class SongService:
                     logger.error(f"Error processing song {song_data.get('id', 'unknown')}: {song_error}")
                     continue
 
+            # Calculate next cursor and has_more
             next_cursor = cursor + len(songs)
             has_more = next_cursor < total_count
 

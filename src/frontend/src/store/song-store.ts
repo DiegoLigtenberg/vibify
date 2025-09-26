@@ -269,8 +269,8 @@ export const useSongStore = create<SongState>((set, get) => ({
         const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
         const cardsPerScreen = cardsPerRow * visibleRows;
         
-        // Keep 6-8 screens worth of songs for smooth scrolling
-        const baseMax = Math.max(cardsPerScreen * 6, 50); // minimum 50 songs
+        // Keep 3-4 screens worth of songs for smooth scrolling (reduced from 6-8)
+        const baseMax = Math.max(cardsPerScreen * 3, 30); // minimum 30 songs
         
         // Ensure max is a multiple of cards per row to prevent position shifting
         const rowsToKeep = Math.ceil(baseMax / cardsPerRow);
@@ -278,11 +278,40 @@ export const useSongStore = create<SongState>((set, get) => ({
       };
       
       const MAX_SONGS = calculateMaxSongs();
-      const combined = [...discoverItems, ...added];
+      
+      // Deduplicate songs by ID to prevent duplicate React keys
+      const existingIds = new Set(discoverItems.map(song => song.id));
+      const uniqueAdded = added.filter(song => !existingIds.has(song.id));
+      
+      const combined = [...discoverItems, ...uniqueAdded];
+      
+      // Debug logging
+      console.log(`Memory management: ${combined.length} total songs, MAX_SONGS: ${MAX_SONGS}`);
+      
+      // Remove old songs from the beginning to keep memory usage low
+      // Keep only the most recent MAX_SONGS songs
       const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
       
+      // Final deduplication to ensure no duplicates in trimmed array
+      const finalSongs = [];
+      const seenIds = new Set();
+      for (const song of trimmed) {
+        if (!seenIds.has(song.id)) {
+          seenIds.add(song.id);
+          finalSongs.push(song);
+        }
+      }
+      
+      if (trimmed.length < combined.length) {
+        console.log(`Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
+      }
+      
+      if (finalSongs.length < trimmed.length) {
+        console.log(`Removed ${trimmed.length - finalSongs.length} duplicate songs, final count: ${finalSongs.length}`);
+      }
+      
       set({
-        discoverItems: trimmed,
+        discoverItems: finalSongs,
         discoverCursor: next_cursor,
         discoverHasMore: has_more,
         isLoadingDiscover: false
@@ -368,11 +397,26 @@ export const useSongStore = create<SongState>((set, get) => ({
       };
       
       const MAX_SONGS = calculateMaxSongs();
-      const combined = [...genreDiscoverItems, ...added];
+      
+      // Deduplicate songs by ID to prevent duplicate React keys
+      const existingIds = new Set(genreDiscoverItems.map(song => song.id));
+      const uniqueAdded = added.filter(song => !existingIds.has(song.id));
+      
+      const combined = [...genreDiscoverItems, ...uniqueAdded];
       const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
       
+      // Final deduplication to ensure no duplicates in trimmed array
+      const finalSongs = [];
+      const seenIds = new Set();
+      for (const song of trimmed) {
+        if (!seenIds.has(song.id)) {
+          seenIds.add(song.id);
+          finalSongs.push(song);
+        }
+      }
+      
       set({
-        genreDiscoverItems: trimmed,
+        genreDiscoverItems: finalSongs,
         genreDiscoverCursor: next_cursor,
         genreDiscoverHasMore: has_more,
         isLoadingGenreDiscover: false
