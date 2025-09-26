@@ -29,18 +29,20 @@ export function calculateBatchSizing(): BatchSizeConfig {
 
   const containerWidth = window.innerWidth;
   
-  // Calculate cards per row based on Tailwind breakpoints (same as UnifiedGrid)
+  // Calculate cards per row based on screen width for optimal viewing
   let cardsPerRow;
-  if (containerWidth < 640) { // sm
+  if (containerWidth < 640) { // sm - mobile
     cardsPerRow = 2;
-  } else if (containerWidth < 768) { // md
+  } else if (containerWidth < 768) { // md - small tablet
     cardsPerRow = 3;
-  } else if (containerWidth < 1024) { // lg
+  } else if (containerWidth < 1024) { // lg - tablet
     cardsPerRow = 4;
-  } else if (containerWidth < 1280) { // xl
+  } else if (containerWidth < 1280) { // xl - small desktop
     cardsPerRow = 5;
-  } else { // 2xl+
+  } else if (containerWidth < 1920) { // 2xl - medium desktop (up to 1920x1080)
     cardsPerRow = 6;
+  } else { // 3xl+ - very large desktop (above 1920x1080)
+    cardsPerRow = 8;
   }
   const visibleRows = Math.ceil(window.innerHeight / 300); // approximate row height
   const cardsPerScreen = cardsPerRow * visibleRows;

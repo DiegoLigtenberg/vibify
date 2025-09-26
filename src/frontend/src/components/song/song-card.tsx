@@ -65,12 +65,12 @@ export function SongCard({
       onClick={handlePlay}
     >
       {/* Thumbnail */}
-      <div className="relative mb-2">
-        <div className={cn('w-full h-56 bg-spotify-gray rounded-md overflow-hidden')}>
+      <div className="relative mb-0.5">
+        <div className={cn('w-full h-40 bg-spotify-gray rounded-md overflow-hidden')}>
           <SongImage
             src={song.thumbnail_url}
             alt={song.title}
-            className="w-full h-56 object-cover"
+            className="w-full h-40 object-cover"
             fallbackIcon={<span className="text-spotify-muted text-2xl">♪</span>}
           />
         </div>
@@ -85,7 +85,7 @@ export function SongCard({
       </div>
 
       {/* Song Info */}
-      <div className="space-y-0.5">
+      <div className="space-y-0">
         <div className={cn('text-left text-white font-medium', compact ? 'text-[10px]' : 'text-sm')} style={{ wordBreak: 'break-word', lineHeight: '1.3' }}>
           {song.title}
         </div>
@@ -102,7 +102,7 @@ export function SongCard({
           </p>
         )}
         
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center justify-between">
           <span className={cn('text-spotify-muted', compact ? 'text-[11px]' : 'text-xs')}>
             {formatDuration(song.duration)}
           </span>
