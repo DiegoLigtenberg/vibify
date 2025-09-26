@@ -33,7 +33,7 @@ interface UnifiedGridProps {
 export function UnifiedGrid({ children, className }: UnifiedGridProps) {
   return (
     <div className={cn(
-      'grid gap-2 sm:gap-3 auto-rows-fr',
+      'grid gap-2 sm:gap-3',
       'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
       'px-2 sm:px-0', // Add horizontal padding on mobile
       className

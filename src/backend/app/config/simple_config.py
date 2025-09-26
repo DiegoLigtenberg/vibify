@@ -32,8 +32,12 @@ class Config:
     B2_THUMBNAIL_FOLDER = os.getenv("B2_THUMBNAIL_FOLDER", "thumbnails")
     
     # CORS Origins (from .env)
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001").split(",")
     CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+    
+    # Ensure 127.0.0.1:3000 is always included for local development
+    if "http://127.0.0.1:3000" not in CORS_ORIGINS:
+        CORS_ORIGINS.append("http://127.0.0.1:3000")
     
     # Application Configuration (auto-set based on environment)
     if IS_DEVELOPMENT:

@@ -4,8 +4,9 @@ Main entry point for the Vibify music streaming API
 """
 
 import os
+import time
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # Now import everything else
@@ -13,6 +14,7 @@ from .api import songs, upload
 from .config.logging_global import get_logger
 from .config.simple_config import Config
 from .utils.b2_client import B2Client
+from .services.song_service import SongService
 
 
 # Setup logging
@@ -32,9 +34,18 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=Config.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Timing middleware for performance monitoring
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 # Include routers
 app.include_router(songs.router)
@@ -48,8 +59,14 @@ async def startup_event():
         b2_client = B2Client()
         b2_client.warm_up()
         logger.info("B2 client warmed up successfully")
+        
+        # Warm up SongService for faster first requests
+        song_service = SongService()
+        # Pre-initialize by doing a small query
+        song_service.get_discover_feed(limit=1, cursor=0, seed=0)
+        logger.info("SongService warmed up successfully")
     except Exception as e:
-        logger.error(f"Failed to warm up B2 client: {e}")
+        logger.error(f"Failed to warm up services: {e}")
 
 @app.get("/")
 async def root():

@@ -12,9 +12,9 @@ const IS_PRODUCTION = NODE_ENV === 'production';
 const ENV_CONFIG = {
   development: {
     // API Configuration
-    API_BASE_URL: 'http://localhost:8000',
-    API_URL: 'http://localhost:8000',
-    WS_URL: 'ws://localhost:8000',
+    API_BASE_URL: 'http://127.0.0.1:8000',
+    API_URL: 'http://127.0.0.1:8000',
+    WS_URL: 'ws://127.0.0.1:8000',
     
     // Debug settings
     DEBUG: true,

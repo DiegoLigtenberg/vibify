@@ -78,6 +78,15 @@ async def get_random_songs(
     try:
         song_service = SongService()
         songs = song_service.get_random_songs(limit=limit)
+        
+        # Debug logging
+        if songs:
+            song = songs[0]
+            logger.info(f"DEBUG: Song {song.title} - Storage URL: {song.storage_url}")
+            logger.info(f"DEBUG: Song {song.title} - Thumbnail URL: {song.thumbnail_url}")
+            logger.info(f"DEBUG: Storage URL has auth token: {'Authorization=' in song.storage_url}")
+            logger.info(f"DEBUG: Thumbnail URL has auth token: {'Authorization=' in song.thumbnail_url}")
+        
         return songs
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching random songs: {str(e)}")

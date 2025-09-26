@@ -44,7 +44,7 @@ export function SongImage({
       <img
         src={src}
         alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+        className={`${className} ${isLoading ? 'opacity-0 absolute inset-0' : 'opacity-100'} transition-opacity duration-200`}
         onError={handleError}
         onLoad={handleLoad}
       />

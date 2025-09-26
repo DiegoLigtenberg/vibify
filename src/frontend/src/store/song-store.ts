@@ -229,7 +229,7 @@ export const useSongStore = create<SongState>((set, get) => ({
   },
 
          // Discover feed: initialize with a seed (optional)
-         initDiscover: async (seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 24) => {
+         initDiscover: async (seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 48) => {
            const { discoverItems, isLoadingDiscover, discoverSeed, discoverHasMore } = get();
            
            // Force reset if hasMore is false (corrupted state)
@@ -248,18 +248,29 @@ export const useSongStore = create<SongState>((set, get) => ({
          },
 
   // Load the next page for discover
-  loadNextDiscover: async (limit = 24) => {
+  loadNextDiscover: async (limit = 48) => {
     const { isLoadingDiscover, discoverHasMore, discoverCursor, discoverSeed, discoverItems } = get();
     
     if (isLoadingDiscover || !discoverHasMore) {
       return;
     }
     
+    const startTime = performance.now();
+    console.log(`🚀 Starting to load next discover batch at cursor ${discoverCursor} (limit: ${limit})`);
+    
     set({ isLoadingDiscover: true, discoverError: null });
     try {
+      // Track API call time
+      const apiStartTime = performance.now();
       const { songs, next_cursor, has_more } = await SongsAPI.getDiscover({ limit, cursor: discoverCursor, seed: discoverSeed });
+      const apiEndTime = performance.now();
+      const apiDuration = apiEndTime - apiStartTime;
       
       const added = Array.isArray(songs) ? songs : [];
+      console.log(`📡 API call completed in ${apiDuration.toFixed(2)}ms - got ${added.length} songs`);
+      
+      // Track processing time
+      const processStartTime = performance.now();
       
       // Dynamic memory management based on screen size
       const calculateMaxSongs = () => {
@@ -283,10 +294,12 @@ export const useSongStore = create<SongState>((set, get) => ({
       const existingIds = new Set(discoverItems.map(song => song.id));
       const uniqueAdded = added.filter(song => !existingIds.has(song.id));
       
+      console.log(`🔍 Deduplication: ${added.length} new songs, ${uniqueAdded.length} unique after dedup`);
+      
       const combined = [...discoverItems, ...uniqueAdded];
       
       // Debug logging
-      console.log(`Memory management: ${combined.length} total songs, MAX_SONGS: ${MAX_SONGS}`);
+      console.log(`📊 Memory management: ${combined.length} total songs, MAX_SONGS: ${MAX_SONGS}`);
       
       // Remove old songs from the beginning to keep memory usage low
       // Keep only the most recent MAX_SONGS songs
@@ -302,13 +315,19 @@ export const useSongStore = create<SongState>((set, get) => ({
         }
       }
       
+      const processEndTime = performance.now();
+      const processDuration = processEndTime - processStartTime;
+      
       if (trimmed.length < combined.length) {
-        console.log(`Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
+        console.log(`🗑️ Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
       }
       
       if (finalSongs.length < trimmed.length) {
-        console.log(`Removed ${trimmed.length - finalSongs.length} duplicate songs, final count: ${finalSongs.length}`);
+        console.log(`🔄 Removed ${trimmed.length - finalSongs.length} duplicate songs, final count: ${finalSongs.length}`);
       }
+      
+      const totalTime = performance.now() - startTime;
+      console.log(`⚡ Total processing time: ${processDuration.toFixed(2)}ms (API: ${apiDuration.toFixed(2)}ms, Processing: ${processDuration.toFixed(2)}ms, Total: ${totalTime.toFixed(2)}ms)`);
       
       set({
         discoverItems: finalSongs,
@@ -317,6 +336,8 @@ export const useSongStore = create<SongState>((set, get) => ({
         isLoadingDiscover: false
       });
     } catch (error) {
+      const totalTime = performance.now() - startTime;
+      console.error(`❌ Error loading next discover batch after ${totalTime.toFixed(2)}ms:`, error);
       set({
         discoverError: error instanceof Error ? error.message : 'Discover load failed',
         isLoadingDiscover: false
@@ -340,7 +361,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     });
   },
 
-  initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 24) => {
+  initGenreDiscover: async (genres: string[], seed = Math.floor(Math.random() * 1_000_000), initialBatchSize = 48) => {
     const { genreDiscoverItems, isLoadingGenreDiscover, genreDiscoverSeed, genreDiscoverHasMore } = get();
     
     // Force reset if hasMore is false (corrupted state)
@@ -365,23 +386,34 @@ export const useSongStore = create<SongState>((set, get) => ({
     await get().loadNextGenreDiscover(initialBatchSize);
   },
 
-  loadNextGenreDiscover: async (limit = 24) => {
+  loadNextGenreDiscover: async (limit = 48) => {
     const { isLoadingGenreDiscover, genreDiscoverHasMore, genreDiscoverCursor, genreDiscoverSeed, genreDiscoverItems, selectedGenres } = get();
     
     if (isLoadingGenreDiscover || !genreDiscoverHasMore || selectedGenres.length === 0) {
       return;
     }
     
+    const startTime = performance.now();
+    console.log(`🎵 Starting to load next genre discover batch at cursor ${genreDiscoverCursor} (limit: ${limit}, genres: ${selectedGenres.join(', ')})`);
+    
     set({ isLoadingGenreDiscover: true, genreDiscoverError: null });
     try {
+      // Track API call time
+      const apiStartTime = performance.now();
       const { songs, next_cursor, has_more } = await SongsAPI.getDiscoverByGenres({ 
         genres: selectedGenres, 
         limit, 
         cursor: genreDiscoverCursor, 
         seed: genreDiscoverSeed 
       });
+      const apiEndTime = performance.now();
+      const apiDuration = apiEndTime - apiStartTime;
       
       const added = Array.isArray(songs) ? songs : [];
+      console.log(`📡 Genre API call completed in ${apiDuration.toFixed(2)}ms - got ${added.length} songs`);
+      
+      // Track processing time
+      const processStartTime = performance.now();
       
       // Memory management: keep only recent songs to prevent memory issues
       const calculateMaxSongs = () => {
@@ -402,6 +434,8 @@ export const useSongStore = create<SongState>((set, get) => ({
       const existingIds = new Set(genreDiscoverItems.map(song => song.id));
       const uniqueAdded = added.filter(song => !existingIds.has(song.id));
       
+      console.log(`🔍 Genre deduplication: ${added.length} new songs, ${uniqueAdded.length} unique after dedup`);
+      
       const combined = [...genreDiscoverItems, ...uniqueAdded];
       const trimmed = combined.length > MAX_SONGS ? combined.slice(-MAX_SONGS) : combined;
       
@@ -415,6 +449,20 @@ export const useSongStore = create<SongState>((set, get) => ({
         }
       }
       
+      const processEndTime = performance.now();
+      const processDuration = processEndTime - processStartTime;
+      
+      if (trimmed.length < combined.length) {
+        console.log(`🗑️ Genre: Removed ${combined.length - trimmed.length} old songs, kept ${trimmed.length} recent songs`);
+      }
+      
+      if (finalSongs.length < trimmed.length) {
+        console.log(`🔄 Genre: Removed ${trimmed.length - finalSongs.length} duplicate songs, final count: ${finalSongs.length}`);
+      }
+      
+      const totalTime = performance.now() - startTime;
+      console.log(`⚡ Genre total processing time: ${processDuration.toFixed(2)}ms (API: ${apiDuration.toFixed(2)}ms, Processing: ${processDuration.toFixed(2)}ms, Total: ${totalTime.toFixed(2)}ms)`);
+      
       set({
         genreDiscoverItems: finalSongs,
         genreDiscoverCursor: next_cursor,
@@ -422,6 +470,8 @@ export const useSongStore = create<SongState>((set, get) => ({
         isLoadingGenreDiscover: false
       });
     } catch (error) {
+      const totalTime = performance.now() - startTime;
+      console.error(`❌ Error loading next genre discover batch after ${totalTime.toFixed(2)}ms:`, error);
       set({
         genreDiscoverError: error instanceof Error ? error.message : 'Genre discover load failed',
         isLoadingGenreDiscover: false
@@ -496,5 +546,20 @@ export const useSongStore = create<SongState>((set, get) => ({
 
   isLiked: (songId: string) => {
     return get().likedSongs.has(songId);
+  },
+
+  // Performance debugging
+  getPerformanceStats: () => {
+    const { discoverItems, genreDiscoverItems } = get();
+    return {
+      discoverItems: discoverItems.length,
+      genreDiscoverItems: genreDiscoverItems.length,
+      totalSongs: discoverItems.length + genreDiscoverItems.length,
+      memoryUsage: {
+        discover: `${discoverItems.length} songs`,
+        genre: `${genreDiscoverItems.length} songs`,
+        total: `${discoverItems.length + genreDiscoverItems.length} songs`
+      }
+    };
   }
 }));

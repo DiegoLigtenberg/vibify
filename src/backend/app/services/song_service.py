@@ -14,7 +14,18 @@ import os
 logger = get_logger(__name__)
 
 class SongService:
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SongService, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
+        if self._initialized:
+            return
+            
         self.b2_client = B2Client()
         try:
             supabase_client = SupabaseClient()
@@ -22,6 +33,8 @@ class SongService:
         except Exception as e:
             logger.error(f"Error initializing Supabase connection: {e}")
             self.supabase = None
+        
+        self._initialized = True
     
     def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None) -> Dict[str, str]:
         """
@@ -60,41 +73,40 @@ class SongService:
         Returns:
             Song object with URLs
         """
-        # Use existing URLs directly - they're already valid B2 URLs
-        # This is the key optimization: don't regenerate URLs unless absolutely necessary
-        storage_url = song_data.get('storage_url', '')
-        thumbnail_url = song_data.get('thumbnail_url', '')
+        # Always generate fresh B2 URLs with authorization tokens for private buckets
+        # The URLs in the database are public URLs that don't work with private buckets
+        song_id = song_data['id']
         
-        # Only regenerate URLs if they're completely missing
-        # The URLs in the database are already valid B2 URLs with auth tokens
-        if not storage_url:
-            audio_filename = f"{song_data['id']}.mp3"
-            storage_url = self.b2_client.get_audio_url(audio_filename)
-        
-        if not thumbnail_url:
-            thumbnail_filename = f"{song_data['id']}.png"
-            thumbnail_url = self.b2_client.get_thumbnail_url(thumbnail_filename)
+        # Generate authenticated URLs using B2 client
+        storage_url = self.b2_client.get_audio_url(f"{song_id}.mp3")
+        thumbnail_url = self.b2_client.get_thumbnail_url(f"{song_id}.png")
         
         # Create Song object
-        return Song(
-            id=song_data['id'],
-            title=song_data['title'],
-            artist=song_data['artist'],
-            album=song_data['album'],
-            duration=song_data['duration'],
-            storage_url=storage_url,
-            thumbnail_url=thumbnail_url,
-            release_date=song_data.get('release_date'),
-            description=song_data.get('description'),
-            genres=song_data.get('tags', []),
-            view_count=song_data.get('view_count') or 0,
-            like_count=song_data.get('like_count') or 0,
-            streams=song_data.get('streams') or 0,
-            is_public=song_data.get('is_public', True),
-            uploaded_by=song_data.get('uploaded_by'),
-            created_at=song_data.get('created_at'),
-            updated_at=song_data.get('updated_at')
-        )
+        song_kwargs = {
+            'id': song_data['id'],
+            'title': song_data['title'],
+            'artist': song_data['artist'],
+            'album': song_data['album'],
+            'duration': song_data['duration'],
+            'storage_url': storage_url,
+            'thumbnail_url': thumbnail_url,
+            'release_date': song_data.get('release_date'),
+            'description': song_data.get('description'),
+            'genres': song_data.get('tags', []),
+            'view_count': song_data.get('view_count') or 0,
+            'like_count': song_data.get('like_count') or 0,
+            'streams': song_data.get('streams') or 0,
+            'is_public': song_data.get('is_public', True),
+            'uploaded_by': song_data.get('uploaded_by')
+        }
+        
+        # Only add datetime fields if they exist and are not None
+        if song_data.get('created_at') is not None:
+            song_kwargs['created_at'] = song_data['created_at']
+        if song_data.get('updated_at') is not None:
+            song_kwargs['updated_at'] = song_data['updated_at']
+        
+        return Song(**song_kwargs)
     
     def extract_filename_from_b2_url(self, b2_url: str, folder: str) -> str:
         """
@@ -996,23 +1008,9 @@ class SongService:
                 logger.error("Error: Supabase connection not available")
                 return {"songs": [], "next_cursor": cursor, "has_more": False, "seed": seed, "total": 0}
             
-            # Get total number of public songs
-            count_response = (
-                self.supabase
-                .table('songs')
-                .select('*', count='exact')
-                .eq('is_public', True)
-                .execute()
-            )
-            total_count = count_response.count or 0
-            
-            if total_count == 0:
-                return {"songs": [], "next_cursor": cursor, "has_more": False, "seed": seed, "total": 0}
-
-            # Use proper pagination with offset
-            # cursor is the offset, limit is how many to fetch
-            start_offset = cursor
-            end_offset = cursor + limit - 1
+            # Use optimized approach: fetch a larger batch and sample from it
+            # This avoids the expensive count query that was causing 200-750ms delays
+            batch_size = max(limit * 3, 100)  # Fetch 3x the requested amount
             
             # Get songs with proper pagination
             result = (
@@ -1021,43 +1019,28 @@ class SongService:
                 .select('*')
                 .eq('is_public', True)
                 .order('created_at', desc=True)  # Consistent ordering
-                .range(start_offset, end_offset)
+                .range(cursor, cursor + batch_size - 1)
                 .execute()
             )
             
             rows = result.data or []
+            
+            if not rows:
+                return {"songs": [], "next_cursor": cursor, "has_more": False, "seed": seed, "total": 0}
 
+            # Process songs using optimized method
             songs: List[Song] = []
-            for song_data in rows:
+            for song_data in rows[:limit]:  # Only process the requested limit
                 try:
-                    urls = self.generate_song_urls(song_id=song_data['id'])
-                    songs.append(
-                        Song(
-                            id=song_data['id'],
-                            title=song_data['title'],
-                            artist=song_data['artist'],
-                            album=song_data['album'],
-                            duration=song_data['duration'],
-                            release_date=song_data.get('release_date'),
-                            view_count=song_data.get('view_count') or 0,
-                            like_count=song_data.get('like_count') or 0,
-                            streams=song_data.get('streams') or 0,
-                            description=song_data.get('description'),
-                            storage_url=urls['storage_url'],
-                            thumbnail_url=urls['thumbnail_url'],
-                            is_public=song_data.get('is_public', True),
-                            uploaded_by=song_data.get('uploaded_by'),
-                            created_at=song_data.get('created_at'),
-                            updated_at=song_data.get('updated_at')
-                        )
-                    )
+                    song = self.process_song_data(song_data)
+                    songs.append(song)
                 except Exception as song_error:
                     logger.error(f"Error processing song {song_data.get('id', 'unknown')}: {song_error}")
                     continue
 
             # Calculate next cursor and has_more
             next_cursor = cursor + len(songs)
-            has_more = next_cursor < total_count
+            has_more = len(rows) > limit  # If we got more than requested, there might be more
 
             logger.debug(f"Discover feed: returning {len(songs)} songs, cursor={cursor}, next_cursor={next_cursor}, has_more={has_more}")
 
@@ -1066,7 +1049,7 @@ class SongService:
                 "next_cursor": next_cursor,
                 "has_more": has_more,
                 "seed": seed,
-                "total": total_count
+                "total": 0  # We don't need total count for performance
             }
         except Exception as e:
             logger.error(f"Error fetching discover feed: {e}")

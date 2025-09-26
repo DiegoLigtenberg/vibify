@@ -66,7 +66,7 @@ export function SongCard({
     >
       {/* Thumbnail */}
       <div className="relative mb-3">
-        <div className={cn('w-full bg-spotify-gray rounded-md overflow-hidden')}>
+        <div className={cn('w-full h-48 bg-spotify-gray rounded-md overflow-hidden')}>
           <SongImage
             src={song.thumbnail_url}
             alt={song.title}
