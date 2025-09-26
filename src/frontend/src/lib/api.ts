@@ -47,7 +47,13 @@ export class SongsAPI {
       }
       
       const result = await response.json();
-      return result;
+      // Backend returns array directly, need to wrap it in SongSearchResult format
+      const songs = Array.isArray(result) ? result : [];
+      return {
+        songs,
+        total: songs.length,
+        has_more: songs.length === limit // Assume more if we got full limit
+      };
     } catch (error) {
       console.error('Error searching songs:', error);
       return {
@@ -349,7 +355,8 @@ export class SongsAPI {
       }
       
       const result = await response.json();
-      return result.songs || [];
+      // Backend returns array directly, not wrapped in {songs: []}
+      return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error searching songs:', error);
       return [];

@@ -334,27 +334,6 @@ async def download_song(song_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error downloading song: {str(e)}")
 
-@router.get("/{song_id}")
-async def get_song(song_id: str):
-    """Get single song with generated URLs"""
-    song_service = SongService()
-    # Mock data for testing - replace with actual database query
-    mock_song = {
-        "id": song_id,
-        "title": f"Song {song_id}",
-        "artist": "Sample Artist",
-        "album": "Sample Album",
-        "duration": 180.5,
-        "audio_filename": f"{song_id}.mp3",
-        "thumbnail_filename": f"{song_id}.png"
-    }
-    
-    # Add generated URLs
-    song_with_urls = song_service.get_song_with_urls(mock_song)
-    
-    return song_with_urls
-
-
 @router.get("/{song_id}/audio")
 async def get_song_audio(song_id: str):
     """Proxy endpoint to serve audio files from private B2 bucket"""
@@ -433,3 +412,24 @@ async def get_song_thumbnail(song_id: str):
     except Exception as e:
         logger.error(f"Error serving thumbnail for song {song_id}: {e}")
         raise HTTPException(status_code=500, detail="Error serving thumbnail")
+
+# IMPORTANT: Keep this route LAST to avoid conflicts with specific routes above
+@router.get("/{song_id}")
+async def get_song(song_id: str):
+    """Get single song with generated URLs"""
+    song_service = SongService()
+    # Mock data for testing - replace with actual database query
+    mock_song = {
+        "id": song_id,
+        "title": f"Song {song_id}",
+        "artist": "Sample Artist",
+        "album": "Sample Album",
+        "duration": 180.5,
+        "audio_filename": f"{song_id}.mp3",
+        "thumbnail_filename": f"{song_id}.png"
+    }
+    
+    # Add generated URLs
+    song_with_urls = song_service.get_song_with_urls(mock_song)
+    
+    return song_with_urls

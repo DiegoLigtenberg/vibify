@@ -685,29 +685,44 @@ class SongService:
                 rows = result.data if result.data else []
                 
             else:
-                # Simple text search without tag filtering
-                query_builder = (
-                    self.supabase
-                    .table('songs')
-                    .select('*')
-                    .text_search('search_vector', query)
-                    .eq('is_public', True)
-                    .limit(limit)
-                )
+                # Simple text search without tag filtering - use REST RPC (working approach)
+                import httpx
+                from ..config.simple_config import Config
                 
-                # Add sorting
-                if sort_by == "streams":
-                    query_builder = query_builder.order('streams', desc=(sort_order == 'desc'))
-                elif sort_by == "created_at":
-                    query_builder = query_builder.order('created_at', desc=(sort_order == 'desc'))
-                elif sort_by == "title":
-                    query_builder = query_builder.order('title', desc=(sort_order == 'desc'))
-                else:
-                    # Default to created_at for relevance-like behavior
-                    query_builder = query_builder.order('created_at', desc=True)
+                # Map sort_by to database field names
+                sort_field_map = {
+                    "streams": "streams",
+                    "created_at": "created_at", 
+                    "title": "title",
+                    "relevance": "created_at"  # Default to created_at for relevance
+                }
                 
-                result = query_builder.execute()
-                rows = result.data if result.data else []
+                db_sort_field = sort_field_map.get(sort_by, "created_at")
+                db_sort_order = "DESC" if sort_order == "desc" else "ASC"
+                
+                # Direct REST API call to Supabase RPC
+                rpc_url = f"{Config.SUPABASE_URL}/rest/v1/rpc/search_songs"
+                headers = {
+                    "Content-Type": "application/json",
+                    "apikey": Config.SUPABASE_KEY,
+                    "Authorization": f"Bearer {Config.SUPABASE_KEY}",
+                    "Prefer": "return=representation"
+                }
+                payload = {
+                    "search_query": query,
+                    "result_limit": limit,
+                    "sort_field": db_sort_field,
+                    "sort_order": db_sort_order
+                }
+                
+                try:
+                    with httpx.Client(timeout=10) as client:
+                        resp = client.post(rpc_url, headers=headers, json=payload)
+                        resp.raise_for_status()
+                        rows = resp.json() or []
+                except Exception as e:
+                    logger.error(f"REST RPC search_songs failed: {e}")
+                    rows = []
             
             # Convert to Song objects
             songs = []

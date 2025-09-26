@@ -246,7 +246,7 @@ export default function GenrePage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     // Only add if the exact search query matches a genre name
-                    const exactMatch = allGenres.find(genre => 
+                    const exactMatch = TOP_GENRES.find((genre: Genre) => 
                       genre.name.toLowerCase() === searchQuery.toLowerCase()
                     );
                     if (exactMatch && !selectedGenres.includes(exactMatch.name) && selectedGenres.length < 3) {
