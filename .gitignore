@@ -110,3 +110,6 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+
+# TypeScript build cache
+*.tsbuildinfo

@@ -32,6 +32,8 @@ class Config:
     B2_API_URL = os.getenv("B2_API_URL")
     B2_AUDIO_FOLDER = os.getenv("B2_AUDIO_FOLDER", "audio")
     B2_THUMBNAIL_FOLDER = os.getenv("B2_THUMBNAIL_FOLDER", "thumbnails")
+    B2_USER_AUDIO_FOLDER = os.getenv("B2_USER_AUDIO_FOLDER", "user_audio")
+    B2_USER_THUMBNAIL_FOLDER = os.getenv("B2_USER_THUMBNAIL_FOLDER", "user_thumbnails")
     
     # CORS Origins (from .env)
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001").split(",")

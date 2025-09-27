@@ -29,6 +29,7 @@ const sidebarItems = [
 
 const playlistItems = [
   { href: '/playlist/liked', label: 'Liked Songs', icon: Heart },
+  { href: '/playlist/my-songs', label: 'My Songs', icon: Music },
   { href: '/playlist/recent', label: 'Recently Played', icon: Clock },
 ];
 

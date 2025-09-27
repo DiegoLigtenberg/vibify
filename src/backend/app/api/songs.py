@@ -63,6 +63,197 @@ async def discover_test():
         "total": 0
     }
 
+@router.get("/my-songs")
+async def get_my_songs(
+    request: Request,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    sort: str = Query("created_at", regex="^(created_at|title|artist|view_count|like_count)$"),
+    order: str = Query("desc", regex="^(asc|desc)$")
+):
+    """Get songs uploaded by the current user"""
+    try:
+        # Get user ID from headers
+        user_id = request.headers.get("X-User-ID")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+        
+        # Validate user ID format
+        import uuid
+        try:
+            uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        
+        # Initialize song service
+        song_service = SongService()
+        song_service.set_current_user(user_id)
+        
+        # Build query
+        query = song_service.supabase.table('songs').select('*')
+        
+        # Filter by user
+        query = query.eq('uploaded_by', user_id)
+        
+        # Apply search filter
+        if search:
+            query = query.or_(f'title.ilike.%{search}%,artist.ilike.%{search}%,album.ilike.%{search}%')
+        
+        # Apply sorting
+        query = query.order(f'{sort}.{order}')
+        
+        # Apply pagination
+        offset = (page - 1) * limit
+        query = query.range(offset, offset + limit - 1)
+        
+        # Execute query
+        result = query.execute()
+        
+        if not result.data:
+            return {
+                "songs": [],
+                "pagination": {
+                    "page": page,
+                    "limit": limit,
+                    "total": 0,
+                    "pages": 0
+                }
+            }
+        
+        # Get total count for pagination
+        count_result = song_service.supabase.table('songs').select('id', count='exact').eq('uploaded_by', user_id).execute()
+        total = count_result.count if hasattr(count_result, 'count') else len(result.data)
+        
+        # Generate URLs for each song
+        songs_with_urls = []
+        for song in result.data:
+            # Extract filenames from URLs for URL generation
+            audio_filename = song.get('storage_url', '').split('/')[-1] if song.get('storage_url') else None
+            thumbnail_filename = song.get('thumbnail_url', '').split('/')[-1] if song.get('thumbnail_url') else None
+            
+            # Generate fresh URLs
+            is_user_upload = song.get('uploaded_by') is not None
+            urls = song_service.generate_song_urls(
+                song_id=song['id'],
+                audio_filename=audio_filename,
+                thumbnail_filename=thumbnail_filename,
+                is_user_upload=is_user_upload
+            )
+            
+            # Update song with fresh URLs
+            song_with_urls = {**song, **urls}
+            songs_with_urls.append(song_with_urls)
+        
+        return {
+            "songs": songs_with_urls,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "pages": (total + limit - 1) // limit
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user songs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user songs: {str(e)}")
+
+@router.get("/by-user/{user_id}")
+async def get_songs_by_user(
+    user_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    sort: str = Query("created_at", regex="^(created_at|title|artist|view_count|like_count)$"),
+    order: str = Query("desc", regex="^(asc|desc)$")
+):
+    """Get songs uploaded by a specific user (admin endpoint)"""
+    try:
+        # Validate user ID format
+        import uuid
+        try:
+            uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        
+        # Initialize song service
+        song_service = SongService()
+        song_service.set_current_user(user_id)
+        
+        # Build query
+        query = song_service.supabase.table('songs').select('*')
+        
+        # Filter by user
+        query = query.eq('uploaded_by', user_id)
+        
+        # Apply search filter
+        if search:
+            query = query.or_(f'title.ilike.%{search}%,artist.ilike.%{search}%,album.ilike.%{search}%')
+        
+        # Apply sorting
+        query = query.order(f'{sort}.{order}')
+        
+        # Apply pagination
+        offset = (page - 1) * limit
+        query = query.range(offset, offset + limit - 1)
+        
+        # Execute query
+        result = query.execute()
+        
+        if not result.data:
+            return {
+                "songs": [],
+                "pagination": {
+                    "page": page,
+                    "limit": limit,
+                    "total": 0,
+                    "pages": 0
+                }
+            }
+        
+        # Get total count for pagination
+        count_result = song_service.supabase.table('songs').select('id', count='exact').eq('uploaded_by', user_id).execute()
+        total = count_result.count if hasattr(count_result, 'count') else len(result.data)
+        
+        # Generate URLs for each song
+        songs_with_urls = []
+        for song in result.data:
+            # Extract filenames from URLs for URL generation
+            audio_filename = song.get('storage_url', '').split('/')[-1] if song.get('storage_url') else None
+            thumbnail_filename = song.get('thumbnail_url', '').split('/')[-1] if song.get('thumbnail_url') else None
+            
+            # Generate fresh URLs
+            is_user_upload = song.get('uploaded_by') is not None
+            urls = song_service.generate_song_urls(
+                song_id=song['id'],
+                audio_filename=audio_filename,
+                thumbnail_filename=thumbnail_filename,
+                is_user_upload=is_user_upload
+            )
+            
+            # Update song with fresh URLs
+            song_with_urls = {**song, **urls}
+            songs_with_urls.append(song_with_urls)
+        
+        return {
+            "songs": songs_with_urls,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "pages": (total + limit - 1) // limit
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching songs by user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch songs by user: {str(e)}")
+
 @router.get("/", response_model=SongResponse)
 async def get_songs(
     limit: int = Query(20, ge=1, le=100, description="Number of songs to return"),
@@ -253,7 +444,9 @@ async def get_liked_songs(request: Request):
 async def get_song_urls(song_id: str):
     """Get URLs for a specific song"""
     song_service = SongService()
-    urls = song_service.generate_song_urls(song_id)
+    # For individual song URL generation, we need to check if it's a user upload
+    # This is a simplified case - in practice, you'd want to fetch the song data first
+    urls = song_service.generate_song_urls(song_id, is_user_upload=False)
     
     return {
         "song_id": song_id,

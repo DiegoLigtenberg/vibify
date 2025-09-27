@@ -1,7 +1,7 @@
-import type { Song, SongSearchParams, SongSearchResult, RandomSongParams } from '@/shared/types/song';
-import type { Playlist, PlaylistWithSongs, CreatePlaylistRequest, UpdatePlaylistRequest, AddSongToPlaylistRequest } from '@/shared/types/playlist';
-import type { Album, AlbumWithSongs, AlbumSearchParams, AlbumSearchResult } from '@/shared/types/album';
-import type { ApiResponse, PaginatedResponse } from '@/shared/types/api';
+import type { Song, SongSearchParams, SongSearchResult, RandomSongParams } from '../shared/types/song';
+import type { Playlist, PlaylistWithSongs, CreatePlaylistRequest, UpdatePlaylistRequest, AddSongToPlaylistRequest } from '../shared/types/playlist';
+import type { Album, AlbumWithSongs, AlbumSearchParams, AlbumSearchResult } from '../shared/types/album';
+import type { ApiResponse, PaginatedResponse } from '../shared/types/api';
 import { APP_CONFIG } from './config';
 import { useAuthStore } from '../store/auth-store';
 

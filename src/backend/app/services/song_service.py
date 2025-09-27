@@ -43,14 +43,54 @@ class SongService:
         self._current_user_id = user_id
         logger.info(f"Current user ID set to: {self._current_user_id}")
     
-    def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None) -> Dict[str, str]:
+    def get_song_count(self) -> int:
+        """Get the highest song number from MP3 filenames in the database"""
+        try:
+            if not self.supabase:
+                logger.error("Supabase client not initialized")
+                return 0
+            
+            # Get all storage URLs to extract song numbers from filenames
+            result = self.supabase.table('songs').select('storage_url').not_.is_('storage_url', 'null').execute()
+            
+            if not result.data:
+                logger.info("No songs found in database")
+                return 0
+            
+            max_song_number = 0
+            
+            for song in result.data:
+                storage_url = song.get('storage_url', '')
+                if storage_url:
+                    # Extract filename from URL (e.g., "https://...bucket-vibify/audio/0011014.mp3")
+                    filename = storage_url.split('/')[-1]  # Get last part after /
+                    
+                    # Extract number from filename (e.g., "0011014.mp3" -> 11014)
+                    if filename.endswith('.mp3'):
+                        number_part = filename[:-4]  # Remove .mp3
+                        try:
+                            song_number = int(number_part)
+                            max_song_number = max(max_song_number, song_number)
+                        except ValueError:
+                            # Skip if not a valid number
+                            continue
+            
+            logger.info(f"Highest song number found in filenames: {max_song_number}")
+            return max_song_number
+            
+        except Exception as e:
+            logger.error(f"Error getting song count from filenames: {e}")
+            return 0
+    
+    def generate_song_urls(self, song_id: str, audio_filename: str = None, thumbnail_filename: str = None, is_user_upload: bool = False) -> Dict[str, str]:
         """
-        Generate URLs for song audio and thumbnail (DEPRECATED - use batch method instead)
+        Generate URLs for song audio and thumbnail
         
         Args:
             song_id: Song ID (e.g., "0000000")
             audio_filename: Audio filename (e.g., "0000000.mp3")
             thumbnail_filename: Thumbnail filename (e.g., "0000000.png")
+            is_user_upload: Whether this is a user upload (uses user_audio folder)
         
         Returns:
             Dict with storage_url and thumbnail_url
@@ -61,9 +101,13 @@ class SongService:
         if not thumbnail_filename:
             thumbnail_filename = f"{song_id}.png"
         
-        # Generate URLs
-        storage_url = self.b2_client.get_audio_url(audio_filename)
-        thumbnail_url = self.b2_client.get_thumbnail_url(thumbnail_filename)
+        # Generate URLs based on upload type
+        if is_user_upload:
+            storage_url = self.b2_client.get_user_audio_url(audio_filename)
+            thumbnail_url = self.b2_client.get_user_thumbnail_url(thumbnail_filename)
+        else:
+            storage_url = self.b2_client.get_audio_url(audio_filename)
+            thumbnail_url = self.b2_client.get_thumbnail_url(thumbnail_filename)
         
         return {
             "storage_url": storage_url,
@@ -153,10 +197,12 @@ class SongService:
         song_id = song_data.get("id", "")
         
         # Generate URLs
+        is_user_upload = song_data.get("uploaded_by") is not None
         urls = self.generate_song_urls(
             song_id=song_id,
             audio_filename=song_data.get("audio_filename"),
-            thumbnail_filename=song_data.get("thumbnail_filename")
+            thumbnail_filename=song_data.get("thumbnail_filename"),
+            is_user_upload=is_user_upload
         )
         
         # Add URLs to song data
@@ -380,7 +426,8 @@ class SongService:
                 genres = [genre["genres"]["name"] for genre in genres_result.data if genre.get("genres")]
             
             # Generate URLs for this song
-            urls = self.generate_song_urls(song_id=song_data['id'])
+            is_user_upload = song_data.get('uploaded_by') is not None
+            urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
             
                 # Create song object with genres
             song = Song(
@@ -528,7 +575,8 @@ class SongService:
             songs = []
             for song_data in songs_result.data:
                 # Generate URLs
-                urls = self.generate_song_urls(song_id=song_data['id'])
+                is_user_upload = song_data.get('uploaded_by') is not None
+                urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
                 
                 song = Song(
                     id=song_data['id'],
@@ -624,7 +672,8 @@ class SongService:
             
             songs = []
             for song_data in result.data:
-                urls = self.generate_song_urls(song_id=song_data['id'])
+                is_user_upload = song_data.get('uploaded_by') is not None
+                urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
                 songs.append(
                     Song(
                         id=song_data['id'],
@@ -750,7 +799,8 @@ class SongService:
             # Convert to Song objects
             songs = []
             for song_data in rows:
-                urls = self.generate_song_urls(song_id=song_data['id'])
+                is_user_upload = song_data.get('uploaded_by') is not None
+                urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
                 songs.append(
                     Song(
                         id=song_data['id'],
@@ -859,7 +909,8 @@ class SongService:
             
             songs = []
             for song_data in result.data:
-                urls = self.generate_song_urls(song_id=song_data['id'])
+                is_user_upload = song_data.get('uploaded_by') is not None
+                urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
                 songs.append(
                     Song(
                         id=song_data['id'],
@@ -1000,7 +1051,8 @@ class SongService:
 
             songs: List[Song] = []
             for song_data in rows:
-                urls = self.generate_song_urls(song_id=song_data['id'])
+                is_user_upload = song_data.get('uploaded_by') is not None
+                urls = self.generate_song_urls(song_id=song_data['id'], is_user_upload=is_user_upload)
                 songs.append(
                     Song(
                         id=song_data['id'],

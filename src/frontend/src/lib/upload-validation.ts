@@ -30,6 +30,17 @@ export const DEFAULT_VALIDATION_OPTIONS: FileValidationOptions = {
   maxAlbumLength: 100,
 };
 
+export const THUMBNAIL_VALIDATION_OPTIONS = {
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  targetWidth: 1280,
+  targetHeight: 720,
+  minWidth: 640, // Minimum size before upscaling
+  minHeight: 360,
+  maxWidth: 2560, // Maximum size before requiring crop
+  maxHeight: 1440,
+};
+
 export interface SongMetadata {
   title: string;
   artist: string;
@@ -66,6 +77,177 @@ export function validateAudioFile(file: File, options: FileValidationOptions = D
     isValid: errors.length === 0,
     errors,
     warnings
+  };
+}
+
+/**
+ * Validate image file for thumbnail
+ */
+export function validateImageFile(file: File, options = THUMBNAIL_VALIDATION_OPTIONS): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check file type
+  if (!options.allowedTypes.includes(file.type)) {
+    errors.push(`Image type ${file.type} is not supported. Allowed types: ${options.allowedTypes.join(', ')}`);
+  }
+
+  // Check file size
+  if (file.size > options.maxFileSize) {
+    errors.push(`Image size ${formatFileSize(file.size)} exceeds maximum allowed size of ${formatFileSize(options.maxFileSize)}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+/**
+ * Get image dimensions from file
+ */
+export function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.width, height: img.height });
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = url;
+  });
+}
+
+/**
+ * Validate image dimensions
+ */
+export function validateImageDimensions(width: number, height: number, options = THUMBNAIL_VALIDATION_OPTIONS): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check minimum dimensions
+  if (width < options.minWidth || height < options.minHeight) {
+    errors.push(`Image too small. Minimum size: ${options.minWidth}x${options.minHeight}, got: ${width}x${height}`);
+  }
+
+  // Check maximum dimensions
+  if (width > options.maxWidth || height > options.maxHeight) {
+    warnings.push(`Image very large. Maximum recommended: ${options.maxWidth}x${options.maxHeight}, got: ${width}x${height}. Will be cropped.`);
+  }
+
+  // Check aspect ratio (should be close to 16:9)
+  const aspectRatio = width / height;
+  const targetAspectRatio = options.targetWidth / options.targetHeight;
+  const aspectRatioDiff = Math.abs(aspectRatio - targetAspectRatio);
+  
+  if (aspectRatioDiff > 0.1) { // Allow 10% deviation
+    warnings.push(`Image aspect ratio (${aspectRatio.toFixed(2)}) differs from target (${targetAspectRatio.toFixed(2)}). Will be cropped to fit.`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+/**
+ * Crop image to target dimensions
+ */
+export function cropImage(
+  file: File, 
+  cropX: number, 
+  cropY: number, 
+  cropWidth: number, 
+  cropHeight: number,
+  targetWidth: number = THUMBNAIL_VALIDATION_OPTIONS.targetWidth,
+  targetHeight: number = THUMBNAIL_VALIDATION_OPTIONS.targetHeight
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    if (!ctx) {
+      reject(new Error('Could not get canvas context'));
+      return;
+    }
+    
+    img.onload = () => {
+      try {
+        // Set canvas size to target dimensions
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        
+        // Draw cropped image scaled to target size
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight, // Source rectangle
+          0, 0, targetWidth, targetHeight      // Destination rectangle
+        );
+        
+        // Convert to blob
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) {
+            const croppedFile = new File([blob], file.name, { type: 'image/png' });
+            resolve(croppedFile);
+          } else {
+            reject(new Error('Failed to create cropped image'));
+          }
+        }, 'image/png', 0.9);
+      } catch (error) {
+        URL.revokeObjectURL(url);
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = url;
+  });
+}
+
+/**
+ * Calculate optimal crop area for 16:9 aspect ratio
+ */
+export function calculateOptimalCrop(width: number, height: number, targetWidth: number = THUMBNAIL_VALIDATION_OPTIONS.targetWidth, targetHeight: number = THUMBNAIL_VALIDATION_OPTIONS.targetHeight) {
+  const targetAspectRatio = targetWidth / targetHeight;
+  const currentAspectRatio = width / height;
+  
+  let cropWidth, cropHeight, cropX, cropY;
+  
+  if (currentAspectRatio > targetAspectRatio) {
+    // Image is wider than target - crop sides
+    cropHeight = height;
+    cropWidth = height * targetAspectRatio;
+    cropX = (width - cropWidth) / 2;
+    cropY = 0;
+  } else {
+    // Image is taller than target - crop top/bottom
+    cropWidth = width;
+    cropHeight = width / targetAspectRatio;
+    cropX = 0;
+    cropY = (height - cropHeight) / 2;
+  }
+  
+  return {
+    x: Math.round(cropX),
+    y: Math.round(cropY),
+    width: Math.round(cropWidth),
+    height: Math.round(cropHeight)
   };
 }
 
