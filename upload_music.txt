@@ -1,0 +1,48 @@
+# Upload Music System Analysis & Maintainability
+
+## Current System Overview
+
+🟢 **How Regular Songs Work (Current State)**
+1. **Database Storage**: Songs stored with `storage_url` = `https://f003.backblazeb2.com/file/bucket-vibify/audio/0004006.mp3` (NO authentication was used before, cus bucket was public then)
+2. **URL Generation**: `SongService.process_song_data()` (`src/backend/app/services/song_service.py:117`) calls `b2_client.get_audio_url()` (`src/backend/app/utils/b2_client.py:132`) directly
+3. **Authentication**: B2Client adds `?Authorization=token` to make URLs work with private bucket
+4. **Result**: `https://f003.backblazeb2.com/file/bucket-vibify/audio/0004006.mp3?Authorization=4_0032604ed561e940000000002_01bf576f_5488f9_acct_f8tIigy6GRdKoMAb1_QZs9d_0dA=`
+
+🟢 **How User Uploads Work (Current State)**
+1. **Upload Process**: `b2_client.upload_file()` (`src/backend/app/utils/b2_client.py:261`) `
+2. **Backblaze Auto-Auth**: Since bucket is private, Backblaze automatically adds auth → `https://f003.backblazeb2.com/file/bucket-vibify/user_audio/0011015-title.mp3?Authorization=token`
+3. **Storage**: URL with auth stored in supabase database → `https://f003.backblazeb2.com/file/bucket-vibify/user_audio/0011015-title.mp3?Authorization=token`
+4. **URL Generation**: `SongService.generate_song_urls()` (`src/backend/app/services/song_service.py:85`) calls `b2_client.get_user_audio_url()` (`src/backend/app/utils/b2_client.py:166`)
+5. **Authentication**: B2Client checks folder type → `user_audio` = skip auth, `audio` = add auth
+6. **Result**: `https://f003.backblazeb2.com/file/bucket-vibify/user_audio/0011015-title.mp3` (auth removed for public access)
+
+## ⚠️ Core Issues
+
+🟡 **1. Authentication Logic**
+- **Regular songs**: Always add authentication (private bucket)
+- **User uploads**: Skip authentication (public access)
+- **Current**: Both use different methods, inconsistent approach
+
+🟡 **2. Different Bucket Folders**
+- **Regular songs**: `audio/` folder (defined in `src/backend/app/config/simple_config.py`)
+- **User uploads**: `user_audio/` folder (defined in `src/backend/app/config/simple_config.py`)
+- **Issue**: Two different code paths for essentially the same operation
+
+## 🔄 Possible Solutions
+
+🟢 **Solution 1: Unify URL Generation**
+- Single method for all URL generation
+- all in one folder type to determine auth behavior (bucket/audi) en (bucket/thumbnails)
+- 🟡 hard to keep track of just user uploads, well we need another db variable.  we have is_public for when user upload_file
+could be promoted to 'regular db' ?
+
+🟢 **Solution 2: Unify URL Generation**
+- Single method for all URL generation
+- Check folder type to determine auth behavior
+- User uploads → public bucket (no auth needed)
+- Regular songs → private bucket (auth required)
+- Clear separation of content types
+🟡 -> i think this is always needed before song can be uploaded to public
+every week validate n songs, and if good then COPY from useruploads to regular songs
+
+also need to thoroughly think about better way for db schema. havent thought too much about multi user yet
